@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D RTS Game</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+        #selection-box {
+            position: absolute;
+            border: 1px solid #fff;
+            background-color: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="selection-box"></div>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+
+        let scene, camera, renderer;
+        let ground;
+        let units = [];
+        let selectedUnits = [];
+        const mouse = new THREE.Vector2();
+        const raycaster = new THREE.Raycaster();
+        const panSpeed = 0.1;
+
+        let selectionBoxElement = document.getElementById('selection-box');
+        let startPoint = new THREE.Vector2();
+        let endPoint = new THREE.Vector2();
+        let isDragging = false;
+
+        init();
+        animate();
+
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xbfd1e5);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 20, 30);
+            camera.lookAt(0, 0, 0);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(0, 10, 0);
+            scene.add(directionalLight);
+
+            // Ground
+            const groundGeometry = new THREE.PlaneGeometry(100, 100);
+            const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+            ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
+
+            // Units
+            const unitGeometry = new THREE.BoxGeometry(1, 1, 1);
+            for (let i = 0; i < 10; i++) {
+                const unitMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+                const unit = new THREE.Mesh(unitGeometry, unitMaterial);
+                unit.position.set(Math.random() * 40 - 20, 0.5, Math.random() * 40 - 20);
+                units.push(unit);
+                scene.add(unit);
+            }
+
+            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('mousemove', onMouseMove, false);
+            window.addEventListener('mousedown', onMouseDown, false);
+            window.addEventListener('mouseup', onMouseUp, false);
+            window.addEventListener('contextmenu', onRightClick, false);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onMouseMove(event) {
+            mouse.x = event.clientX;
+            mouse.y = event.clientY;
+
+            if (isDragging) {
+                endPoint.set(event.clientX, event.clientY);
+                selectionBoxElement.style.width = Math.abs(endPoint.x - startPoint.x) + 'px';
+                selectionBoxElement.style.height = Math.abs(endPoint.y - startPoint.y) + 'px';
+                selectionBoxElement.style.left = Math.min(startPoint.x, endPoint.x) + 'px';
+                selectionBoxElement.style.top = Math.min(startPoint.y, endPoint.y) + 'px';
+            }
+        }
+
+        function onMouseDown(event) {
+            if (event.button === 0) { // Left mouse button
+                isDragging = true;
+                selectionBoxElement.style.display = 'block';
+                startPoint.set(event.clientX, event.clientY);
+            }
+        }
+
+        function onMouseUp(event) {
+            if (event.button === 0) { // Left mouse button
+                isDragging = false;
+                selectionBoxElement.style.display = 'none';
+                selectUnits();
+            }
+        }
+
+        function onRightClick(event) {
+            event.preventDefault();
+            let screenCoords = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
+            raycaster.setFromCamera(screenCoords, camera);
+            const intersects = raycaster.intersectObject(ground);
+
+            if (intersects.length > 0) {
+                const targetPosition = intersects[0].point;
+                selectedUnits.forEach(unit => {
+                    unit.targetPosition = targetPosition;
+                });
+            }
+        }
+
+        function selectUnits() {
+            clearSelection();
+            const selectionBox = new THREE.Box2();
+            selectionBox.setFromPoints([startPoint, endPoint]);
+
+            units.forEach(unit => {
+                const screenPos = unit.position.clone().project(camera);
+                const screenCoords = new THREE.Vector2((screenPos.x + 1) * window.innerWidth / 2, (-screenPos.y + 1) * window.innerHeight / 2);
+
+                if (selectionBox.containsPoint(screenCoords)) {
+                    selectedUnits.push(unit);
+                    unit.material.color.set(0x0000ff);
+                }
+            });
+        }
+
+        function clearSelection() {
+            selectedUnits.forEach(unit => {
+                unit.material.color.set(0xff0000);
+            });
+            selectedUnits = [];
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Camera Pan
+            if (mouse.x < 50) {
+                camera.position.x -= panSpeed;
+            } else if (mouse.x > window.innerWidth - 50) {
+                camera.position.x += panSpeed;
+            }
+
+            if (mouse.y < 50) {
+                camera.position.z -= panSpeed;
+            } else if (mouse.y > window.innerHeight - 50) {
+                camera.position.z += panSpeed;
+            }
+
+            units.forEach(unit => {
+                if (unit.targetPosition) {
+                    const direction = unit.targetPosition.clone().sub(unit.position).normalize();
+                    unit.position.add(direction.multiplyScalar(0.1));
+
+                    if (unit.position.distanceTo(unit.targetPosition) < 0.1) {
+                        unit.targetPosition = null;
+                    }
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
