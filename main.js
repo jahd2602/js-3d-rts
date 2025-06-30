@@ -335,8 +335,8 @@ function init() {
 
     // Units
     const unitGeometry = new THREE.BoxGeometry(1, 1, 1);
-    const unitMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
     for (let i = 0; i < 10; i++) {
+        const unitMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // Create a new material for each unit
         const villager = new Villager(unitGeometry, unitMaterial, labelRenderer);
         villager.position.set(Math.random() * 40 - 20, 0.5, Math.random() * 40 - 20);
         units.push(villager);
