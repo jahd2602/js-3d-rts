@@ -8,7 +8,7 @@ let selectedUnits = [];
 const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 const panSpeed = 0.1;
-let town = { wood: 0, gold: 0, stone: 0 };
+let town = { wood: 0, gold: 0, stone: 0, currentAge: 1 };
 
 class Villager extends THREE.Mesh {
     constructor(geometry, material, labelRenderer) {
@@ -401,6 +401,25 @@ function createBarracks(position) {
     return barracksGroup;
 }
 
+function advanceAge() {
+    if (town.currentAge === 1 && town.wood >= 500 && town.gold >= 200) { // Example costs for Age 2
+        town.wood -= 500;
+        town.gold -= 200;
+        town.currentAge = 2;
+        woodCounterElement.textContent = `Wood: ${town.wood} Gold: ${town.gold} Stone: ${town.stone}`;
+        console.log('Advanced to Age 2!');
+    } else if (town.currentAge === 2 && town.wood >= 1000 && town.gold >= 500 && town.stone >= 300) { // Example costs for Age 3
+        town.wood -= 1000;
+        town.gold -= 500;
+        town.stone -= 300;
+        town.currentAge = 3;
+        woodCounterElement.textContent = `Wood: ${town.wood} Gold: ${town.gold} Stone: ${town.stone}`;
+        console.log('Advanced to Age 3!');
+    } else {
+        console.log('Not enough resources to advance age!');
+    }
+}
+
 function onKeyDown(event) {
     if (event.key === 'b') { // Press 'b' for barracks
         buildingMode = 'barracks';
@@ -577,6 +596,12 @@ function updateUI() {
     } else {
         infoPanelElement.innerHTML = '';
     }
+    // Display current age and advance age button
+    infoPanelElement.innerHTML += `
+        <div>Current Age: ${town.currentAge}</div>
+        <div><button id="advance-age">Advance Age</button></div>
+    `;
+    document.getElementById('advance-age').onclick = advanceAge;
 }
 
 function animate() {
