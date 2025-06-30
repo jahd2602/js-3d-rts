@@ -173,10 +173,16 @@ class Villager extends THREE.Mesh {
                 this.target.buildProgress += deltaTime;
                 if (this.target.buildProgress >= 5) { // 5 seconds to build
                     this.target.userData.built = true;
+                    this.target.children[0].material.opacity = 1; // Make base opaque
+                    this.target.children[1].material.opacity = 1; // Make roof opaque
                     this.status = 'waiting';
                     this.targetPosition = null;
                     console.log('Building complete!');
-                }
+                    if (this.target.userData.buildingType === 'farm') {
+                        this.status = 'gathering_food';
+                        this.target = this.target; // Set target to the newly built farm
+                        this.targetPosition = this.target.position.clone();
+                    }
             }
         } else if (this.targetPosition) {
             const direction = this.targetPosition.clone().sub(this.position).normalize();
