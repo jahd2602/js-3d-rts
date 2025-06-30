@@ -510,10 +510,10 @@ function researchSwordsmanAttack() {
 function onKeyDown(event) {
     if (event.key === 'b') { // Press 'b' for barracks
         buildingMode = 'barracks';
-        console.log('Building Barracks mode activated.');
+        console.log('Building Barracks mode activated. buildingMode:', buildingMode);
     } else if (event.key === 'f') { // Press 'f' for farm
         buildingMode = 'farm';
-        console.log('Building Farm mode activated.');
+        console.log('Building Farm mode activated. buildingMode:', buildingMode);
     }
 }
 
@@ -535,6 +535,7 @@ function onMouseMove(event) {
         selectionBoxElement.style.left = Math.min(startPoint.x, endPoint.x) + 'px';
         selectionBoxElement.style.top = Math.min(startPoint.y, endPoint.y) + 'px';
     } else if (buildingMode) {
+        console.log('onMouseMove: buildingMode is', buildingMode);
         raycaster.setFromCamera(new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1), camera);
         const intersects = raycaster.intersectObjects([ground]);
         if (intersects.length > 0) {
@@ -560,6 +561,7 @@ function onMouseMove(event) {
 
 function onMouseDown(event) {
     if (event.button === 0) { // Left mouse button
+        console.log('onMouseDown: buildingMode is', buildingMode);
         if (buildingMode) {
             raycaster.setFromCamera(new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1), camera);
             const intersects = raycaster.intersectObjects([ground]);
