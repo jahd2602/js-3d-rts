@@ -560,9 +560,30 @@ function onMouseMove(event) {
 
 function onMouseDown(event) {
     if (event.button === 0) { // Left mouse button
-        isDragging = true;
-        selectionBoxElement.style.display = 'block';
-        startPoint.set(event.clientX, event.clientY);
+        if (buildingMode) {
+            raycaster.setFromCamera(new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1), camera);
+            const intersects = raycaster.intersectObjects([ground]);
+            if (intersects.length > 0) {
+                const intersectionPoint = intersects[0].point;
+                let newBuilding;
+                if (buildingMode === 'barracks') {
+                    newBuilding = createBarracks(intersectionPoint);
+                } else if (buildingMode === 'farm') {
+                    newBuilding = createFarm(intersectionPoint);
+                }
+                scene.add(newBuilding);
+                console.log(`${buildingMode} placed at ${intersectionPoint.x}, ${intersectionPoint.z}`);
+                buildingMode = null; // Exit building mode after placement
+                if (ghostBuilding) {
+                    scene.remove(ghostBuilding);
+                    ghostBuilding = null;
+                }
+            }
+        } else {
+            isDragging = true;
+            selectionBoxElement.style.display = 'block';
+            startPoint.set(event.clientX, event.clientY);
+        }
     }
 }
 
