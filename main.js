@@ -10,6 +10,66 @@ const raycaster = new THREE.Raycaster();
 const panSpeed = 0.1;
 let town = { wood: 0 };
 
+class Villager extends THREE.Mesh {
+    constructor(geometry, material, labelRenderer) {
+        super(geometry, material);
+        this.status = 'waiting';
+        this.hitpoints = 10;
+        this.wood = 0;
+        this.target = null;
+        this.targetPosition = null;
+
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'label';
+        labelDiv.textContent = this.status;
+        this.statusLabel = new CSS2DObject(labelDiv);
+        this.statusLabel.position.set(0, 1.5, 0);
+        this.add(this.statusLabel);
+    }
+
+    update(deltaTime, townCenter, town) {
+        this.statusLabel.element.textContent = this.status;
+
+        if (this.status === 'gathering') {
+            if (!this.targetPosition) {
+                this.targetPosition = this.target.position.clone();
+            }
+
+            const distanceToTarget = this.position.distanceTo(this.targetPosition);
+            if (distanceToTarget > 1) {
+                const direction = this.targetPosition.clone().sub(this.position).normalize();
+                this.position.add(direction.multiplyScalar(0.1));
+            } else {
+                this.wood += 2 * deltaTime;
+                if (this.wood >= 10) {
+                    this.targetPosition = townCenter.position.clone();
+                    this.status = 'depositing';
+                }
+            }
+        } else if (this.status === 'depositing') {
+            const distanceToTownCenter = this.position.distanceTo(townCenter.position);
+            if (distanceToTownCenter > 2) {
+                const direction = townCenter.position.clone().sub(this.position).normalize();
+                this.position.add(direction.multiplyScalar(0.1));
+            } else {
+                town.wood += Math.floor(this.wood);
+                this.wood = 0;
+                this.status = 'gathering';
+                this.targetPosition = this.target.position.clone();
+                woodCounterElement.textContent = `Wood: ${town.wood}`;
+            }
+        } else if (this.targetPosition) {
+            const direction = this.targetPosition.clone().sub(this.position).normalize();
+            this.position.add(direction.multiplyScalar(0.1));
+
+            if (this.position.distanceTo(this.targetPosition) < 0.1) {
+                this.targetPosition = null;
+                this.status = 'waiting';
+            }
+        }
+    }
+}
+
 let selectionBoxElement = document.getElementById('selection-box');
 let infoPanelElement = document.getElementById('info-panel');
 let woodCounterElement = document.getElementById('wood-counter');
@@ -70,23 +130,12 @@ function init() {
 
     // Units
     const unitGeometry = new THREE.BoxGeometry(1, 1, 1);
+    const unitMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
     for (let i = 0; i < 10; i++) {
-        const unitMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-        const unit = new THREE.Mesh(unitGeometry, unitMaterial);
-        unit.position.set(Math.random() * 40 - 20, 0.5, Math.random() * 40 - 20);
-        unit.status = 'waiting';
-        unit.hitpoints = 10;
-        unit.wood = 0;
-
-        const labelDiv = document.createElement('div');
-        labelDiv.className = 'label';
-        labelDiv.textContent = unit.status;
-        const statusLabel = new CSS2DObject(labelDiv);
-        statusLabel.position.set(0, 1.5, 0);
-        unit.add(statusLabel);
-
-        units.push(unit);
-        scene.add(unit);
+        const villager = new Villager(unitGeometry, unitMaterial, labelRenderer);
+        villager.position.set(Math.random() * 40 - 20, 0.5, Math.random() * 40 - 20);
+        units.push(villager);
+        scene.add(villager);
     }
 
     window.addEventListener('resize', onWindowResize, false);
@@ -181,15 +230,15 @@ function onRightClick(event) {
         const intersectedObject = intersects[0].object;
         if (intersectedObject.geometry.type === 'CylinderGeometry') { // It's a tree trunk
             const tree = intersectedObject.parent;
-            selectedUnits.forEach(unit => {
-                unit.target = tree;
-                unit.status = 'gathering';
+            selectedUnits.forEach(villager => {
+                villager.target = tree;
+                villager.status = 'gathering';
             });
         } else {
             const targetPosition = intersects[0].point;
-            selectedUnits.forEach(unit => {
-                unit.targetPosition = targetPosition;
-                unit.status = 'walking';
+            selectedUnits.forEach(villager => {
+                villager.targetPosition = targetPosition;
+                villager.status = 'walking';
             });
         }
     }
@@ -264,45 +313,6 @@ function updateUnits() {
     const deltaTime = 0.016; // Assume 60 FPS
 
     units.forEach(unit => {
-        // Update status label
-        unit.children[0].element.textContent = unit.status;
-
-        if (unit.status === 'gathering') {
-            if (!unit.targetPosition) {
-                unit.targetPosition = unit.target.position.clone();
-            }
-
-            const distanceToTarget = unit.position.distanceTo(unit.targetPosition);
-            if (distanceToTarget > 1) {
-                const direction = unit.targetPosition.clone().sub(unit.position).normalize();
-                unit.position.add(direction.multiplyScalar(0.1));
-            } else {
-                unit.wood += 2 * deltaTime;
-                if (unit.wood >= 10) {
-                    unit.targetPosition = townCenter.position.clone();
-                    unit.status = 'depositing';
-                }
-            }
-        } else if (unit.status === 'depositing') {
-            const distanceToTownCenter = unit.position.distanceTo(townCenter.position);
-            if (distanceToTownCenter > 2) {
-                const direction = townCenter.position.clone().sub(unit.position).normalize();
-                unit.position.add(direction.multiplyScalar(0.1));
-            } else {
-                town.wood += Math.floor(unit.wood);
-                unit.wood = 0;
-                unit.status = 'gathering';
-                unit.targetPosition = unit.target.position.clone();
-                woodCounterElement.textContent = `Wood: ${town.wood}`;
-            }
-        } else if (unit.targetPosition) {
-            const direction = unit.targetPosition.clone().sub(unit.position).normalize();
-            unit.position.add(direction.multiplyScalar(0.1));
-
-            if (unit.position.distanceTo(unit.targetPosition) < 0.1) {
-                unit.targetPosition = null;
-                unit.status = 'waiting';
-            }
-        }
+        unit.update(deltaTime, townCenter, town);
     });
 }
