@@ -282,6 +282,13 @@ function createStoneMine(position) {
     return stoneMineGroup;
 }
 
+function onKeyDown(event) {
+    if (event.key === 'b') { // Press 'b' for barracks
+        buildingMode = 'barracks';
+        console.log('Building Barracks mode activated.');
+    }
+}
+
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -322,34 +329,51 @@ function onRightClick(event) {
     event.preventDefault();
     let screenCoords = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
     raycaster.setFromCamera(screenCoords, camera);
-    const intersects = raycaster.intersectObjects([...trees.map(t => t.children[0]), ground]);
+    const intersects = raycaster.intersectObjects([ground]); // Only intersect with ground for placement
 
     if (intersects.length > 0) {
-        const intersectedObject = intersects[0].object;
-        if (intersectedObject.geometry.type === 'CylinderGeometry') { // It's a tree trunk
-            const tree = intersectedObject.parent;
-            selectedUnits.forEach(villager => {
-                villager.target = tree;
-                villager.status = 'gathering_wood';
-            });
-        } else if (intersectedObject.geometry.type === 'SphereGeometry') { // It's a gold mine
-            const goldMine = intersectedObject.parent;
-            selectedUnits.forEach(villager => {
-                villager.target = goldMine;
-                villager.status = 'gathering_gold';
-            });
-        } else if (intersectedObject.geometry.type === 'BoxGeometry') { // It's a stone mine
-            const stoneMine = intersectedObject.parent;
-            selectedUnits.forEach(villager => {
-                villager.target = stoneMine;
-                villager.status = 'gathering_stone';
-            });
+        const intersectionPoint = intersects[0].point;
+
+        if (buildingMode) {
+            if (buildingMode === 'barracks') {
+                const barracksSite = createBuildingSite(intersectionPoint, 'barracks');
+                scene.add(barracksSite);
+                console.log('Barracks building site placed!');
+            }
+            buildingMode = null; // Exit building mode after placement
         } else {
-            const targetPosition = intersects[0].point;
-            selectedUnits.forEach(villager => {
-                villager.targetPosition = targetPosition;
-                villager.status = 'walking';
-            });
+            const intersectedObject = intersects[0].object;
+            if (intersectedObject.geometry.type === 'CylinderGeometry') { // It's a tree trunk
+                const tree = intersectedObject.parent;
+                selectedUnits.forEach(villager => {
+                    villager.target = tree;
+                    villager.status = 'gathering_wood';
+                });
+            } else if (intersectedObject.geometry.type === 'SphereGeometry') { // It's a gold mine
+                const goldMine = intersectedObject.parent;
+                selectedUnits.forEach(villager => {
+                    villager.target = goldMine;
+                    villager.status = 'gathering_gold';
+                });
+            } else if (intersectedObject.geometry.type === 'BoxGeometry') { // It's a stone mine
+                const stoneMine = intersectedObject.parent;
+                selectedUnits.forEach(villager => {
+                    villager.target = stoneMine;
+                    villager.status = 'gathering_stone';
+                });
+            } else if (intersectedObject === ground) {
+                const targetPosition = intersects[0].point;
+                selectedUnits.forEach(villager => {
+                    villager.targetPosition = targetPosition;
+                    villager.status = 'walking';
+                });
+            } else if (intersectedObject.parent.userData.type === 'building_site') {
+                const buildingSite = intersectedObject.parent;
+                selectedUnits.forEach(villager => {
+                    villager.target = buildingSite;
+                    villager.status = 'building';
+                });
+            }
         }
     }
 }
