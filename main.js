@@ -191,7 +191,12 @@ class Swordsman extends THREE.Mesh {
                         if (this.target.hitpoints <= 0) {
                             console.log('Target destroyed!');
                             scene.remove(this.target);
-                            units = units.filter(unit => unit !== this.target);
+                            if (this.target === townCenter) {
+                                console.log('Game Over! Town Center destroyed.');
+                                // Implement game over logic here (e.g., display message, stop game loop)
+                            } else {
+                                units = units.filter(unit => unit !== this.target);
+                            }
                             this.status = 'waiting';
                             this.target = null;
                         }
@@ -320,6 +325,7 @@ function createTownCenter() {
     townCenterGroup.add(roof);
 
     townCenterGroup.position.set(0, 0, 0);
+    townCenterGroup.hitpoints = 500; // Town Center HP
     return townCenterGroup;
 }
 
@@ -418,7 +424,8 @@ function advanceAge() {
         town.stone -= 300;
         town.currentAge = 3;
         woodCounterElement.textContent = `Wood: ${town.wood} Gold: ${town.gold} Stone: ${town.stone}`;
-        console.log('Advanced to Age 3!');
+        console.log('Advanced to Age 3! You Win!');
+        // Implement win logic here (e.g., display message, stop game loop)
     } else {
         console.log('Not enough resources to advance age!');
     }
@@ -608,6 +615,11 @@ function updateUI() {
             `;
             document.getElementById('create-swordsman').onclick = () => unit.createSwordsman();
             document.getElementById('research-swordsman-attack').onclick = researchSwordsmanAttack;
+        } else if (unit === townCenter) {
+            infoPanelElement.innerHTML = `
+                <div>Building: Town Center</div>
+                <div>Hitpoints: ${townCenter.hitpoints}</div>
+            `;
         }
     } else if (selectedUnits.length > 1) {
         infoPanelElement.innerHTML = `<div>${selectedUnits.length} units selected</div>`;
