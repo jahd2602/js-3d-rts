@@ -5,6 +5,7 @@ let scene, camera, renderer, labelRenderer;
 let ground, townCenter;
 let units = [], trees = [];
 let selectedUnits = [];
+let ghostBuilding = null;
 const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 const panSpeed = 0.1;
@@ -415,7 +416,7 @@ function createStoneMine(position) {
     return stoneMineGroup;
 }
 
-function createBarracks(position) {
+function createBarracks(position = new THREE.Vector3()) {
     const barracksGroup = new THREE.Group();
 
     const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
@@ -452,7 +453,7 @@ function createBarracks(position) {
     return barracksGroup;
 }
 
-function createFarm(position) {
+function createFarm(position = new THREE.Vector3()) {
     const farmGroup = new THREE.Group();
 
     const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
@@ -533,6 +534,27 @@ function onMouseMove(event) {
         selectionBoxElement.style.height = Math.abs(endPoint.y - startPoint.y) + 'px';
         selectionBoxElement.style.left = Math.min(startPoint.x, endPoint.x) + 'px';
         selectionBoxElement.style.top = Math.min(startPoint.y, endPoint.y) + 'px';
+    } else if (buildingMode) {
+        raycaster.setFromCamera(new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1), camera);
+        const intersects = raycaster.intersectObjects([ground]);
+        if (intersects.length > 0) {
+            const intersectionPoint = intersects[0].point;
+            if (!ghostBuilding) {
+                if (buildingMode === 'barracks') {
+                    ghostBuilding = createBarracks();
+                } else if (buildingMode === 'farm') {
+                    ghostBuilding = createFarm();
+                }
+                ghostBuilding.material.opacity = 0.5; // Make it transparent
+                scene.add(ghostBuilding);
+            }
+            ghostBuilding.position.copy(intersectionPoint);
+        } else {
+            if (ghostBuilding) {
+                scene.remove(ghostBuilding);
+                ghostBuilding = null;
+            }
+        }
     }
 }
 
