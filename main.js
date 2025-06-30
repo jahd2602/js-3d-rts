@@ -549,7 +549,8 @@ function onMouseMove(event) {
                 } else if (buildingMode === 'farm') {
                     ghostBuilding = createFarm();
                 }
-                ghostBuilding.material.opacity = 0.5; // Make it transparent
+                ghostBuilding.children[0].material.transparent = true;
+                ghostBuilding.children[0].material.opacity = 0.5; // Make it transparent
                 scene.add(ghostBuilding);
             }
             ghostBuilding.position.copy(intersectionPoint);
