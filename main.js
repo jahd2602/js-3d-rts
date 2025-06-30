@@ -579,6 +579,13 @@ function onMouseDown(event) {
                 }
                 scene.add(newBuilding);
                 console.log(`${buildingMode} placed at ${intersectionPoint.x}, ${intersectionPoint.z}`);
+                
+                // Assign villager to build
+                if (selectedUnits.length > 0 && selectedUnits[0] instanceof Villager) {
+                    selectedUnits[0].target = newBuilding;
+                    selectedUnits[0].status = 'building';
+                }
+
                 buildingMode = null; // Exit building mode after placement
                 if (ghostBuilding) {
                     scene.remove(ghostBuilding);
