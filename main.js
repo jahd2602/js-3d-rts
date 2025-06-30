@@ -8,7 +8,7 @@ let selectedUnits = [];
 const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 const panSpeed = 0.1;
-let town = { wood: 0, gold: 0, stone: 0, currentAge: 1 };
+let town = { wood: 0, gold: 0, stone: 0, currentAge: 1, researchedTechnologies: { swordsmanAttack: false } };
 
 class Villager extends THREE.Mesh {
     constructor(geometry, material, labelRenderer) {
@@ -181,7 +181,11 @@ class Swordsman extends THREE.Mesh {
                     this.position.add(direction.multiplyScalar(0.1));
                 } else {
                     if (performance.now() / 1000 - this.lastAttackTime > this.attackCooldown) {
-                        this.target.hitpoints -= this.attack; // Simple damage calculation
+                        let damage = this.attack;
+                        if (town.researchedTechnologies.swordsmanAttack) {
+                            damage *= 1.2; // 20% damage increase after research
+                        }
+                        this.target.hitpoints -= damage; // Simple damage calculation
                         this.lastAttackTime = performance.now() / 1000;
                         console.log(`Swordsman attacked! Target HP: ${this.target.hitpoints}`);
                         if (this.target.hitpoints <= 0) {
@@ -420,6 +424,18 @@ function advanceAge() {
     }
 }
 
+function researchSwordsmanAttack() {
+    if (town.currentAge >= 2 && town.gold >= 100 && town.stone >= 50 && !town.researchedTechnologies.swordsmanAttack) {
+        town.gold -= 100;
+        town.stone -= 50;
+        town.researchedTechnologies.swordsmanAttack = true;
+        woodCounterElement.textContent = `Wood: ${town.wood} Gold: ${town.gold} Stone: ${town.stone}`;
+        console.log('Swordsman attack upgraded!');
+    } else {
+        console.log('Cannot research Swordsman attack upgrade!');
+    }
+}
+
 function onKeyDown(event) {
     if (event.key === 'b') { // Press 'b' for barracks
         buildingMode = 'barracks';
@@ -588,8 +604,10 @@ function updateUI() {
             infoPanelElement.innerHTML = `
                 <div>Building: Barracks</div>
                 <div><button id="create-swordsman">Create Swordsman (60 Gold, 20 Wood)</button></div>
+                <div><button id="research-swordsman-attack">Research Swordsman Attack (100 Gold, 50 Stone)</button></div>
             `;
             document.getElementById('create-swordsman').onclick = () => unit.createSwordsman();
+            document.getElementById('research-swordsman-attack').onclick = researchSwordsmanAttack;
         }
     } else if (selectedUnits.length > 1) {
         infoPanelElement.innerHTML = `<div>${selectedUnits.length} units selected</div>`;
