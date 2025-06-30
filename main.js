@@ -418,19 +418,19 @@ function createStoneMine(position) {
 }
 
 function createBarracks(position = new THREE.Vector3()) {
-    const barracksGroup = new THREE.Group();
-
-    const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+    const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513, transparent: true, opacity: 0.5 });
     const baseGeometry = new THREE.BoxGeometry(8, 6, 8);
     const base = new THREE.Mesh(baseGeometry, baseMaterial);
     base.position.y = 3;
-    barracksGroup.add(base);
 
-    const roofMaterial = new THREE.MeshStandardMaterial({ color: 0xA52A2A });
+    const roofMaterial = new THREE.MeshStandardMaterial({ color: 0xA52A2A, transparent: true, opacity: 0.5 });
     const roofGeometry = new THREE.ConeGeometry(6, 3, 4);
     const roof = new THREE.Mesh(roofGeometry, roofMaterial);
     roof.position.y = 6;
     roof.rotation.y = Math.PI / 4;
+
+    const barracksGroup = new THREE.Group();
+    barracksGroup.add(base);
     barracksGroup.add(roof);
 
     barracksGroup.position.copy(position);
@@ -445,7 +445,10 @@ function createBarracks(position = new THREE.Vector3()) {
             swordsman.position.set(this.position.x + Math.random() * 2 - 1, 0.5, this.position.z + Math.random() * 2 - 1);
             units.push(swordsman);
             scene.add(swordsman);
-            woodCounterElement.textContent = `Wood: ${town.wood} Gold: ${town.gold} Stone: ${town.stone}`;
+            woodDisplayElement.textContent = `Wood: ${town.wood}`;
+            goldDisplayElement.textContent = `Gold: ${town.gold}`;
+            stoneDisplayElement.textContent = `Stone: ${town.stone}`;
+            foodDisplayElement.textContent = `Food: ${town.food}`;
             console.log('Swordsman created!');
         } else {
             console.log('Not enough resources to create Swordsman!');
@@ -455,19 +458,19 @@ function createBarracks(position = new THREE.Vector3()) {
 }
 
 function createFarm(position = new THREE.Vector3()) {
-    const farmGroup = new THREE.Group();
-
-    const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+    const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513, transparent: true, opacity: 0.5 });
     const baseGeometry = new THREE.BoxGeometry(6, 2, 6);
     const base = new THREE.Mesh(baseGeometry, baseMaterial);
     base.position.y = 1;
-    farmGroup.add(base);
 
-    const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x006400 });
+    const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x006400, transparent: true, opacity: 0.5 });
     const roofGeometry = new THREE.PlaneGeometry(4, 4);
     const roof = new THREE.Mesh(roofGeometry, roofMaterial);
     roof.rotation.x = -Math.PI / 2;
     roof.position.y = 2.1;
+
+    const farmGroup = new THREE.Group();
+    farmGroup.add(base);
     farmGroup.add(roof);
 
     farmGroup.position.copy(position);
