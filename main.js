@@ -35,21 +35,43 @@ class Villager extends THREE.Mesh {
     update(deltaTime, townCenter, town) {
         this.statusLabel.element.textContent = this.status;
 
-        if (this.status === 'gathering_wood') {
-            if (!this.targetPosition) {
-                this.targetPosition = this.target.position.clone();
-            }
-
+        if (this.targetPosition) {
             const distanceToTarget = this.position.distanceTo(this.targetPosition);
-            if (distanceToTarget > 1) {
+            if (distanceToTarget > 0.1) {
                 const direction = this.targetPosition.clone().sub(this.position).normalize();
                 this.position.add(direction.multiplyScalar(0.1));
             } else {
-                this.wood += 2 * deltaTime;
-                if (this.wood >= 10) {
-                    this.targetPosition = townCenter.position.clone();
-                    this.status = 'depositing_wood';
+                this.targetPosition = null;
+                if (this.status === 'building') {
+                    // Simulate building progress
+                    if (!this.target.buildProgress) {
+                        this.target.buildProgress = 0;
+                    }
+                    this.target.buildProgress += deltaTime;
+                    if (this.target.buildProgress >= 5) { // 5 seconds to build
+                        this.target.userData.built = true;
+                        this.target.children[0].material.opacity = 1; // Make base opaque
+                        this.target.children[1].material.opacity = 1; // Make roof opaque
+                        this.status = 'waiting';
+                        this.targetPosition = null;
+                        console.log('Building complete!');
+                        if (this.target.userData.buildingType === 'farm') {
+                            this.status = 'gathering_food';
+                            this.target = this.target; // Set target to the newly built farm
+                            this.targetPosition = this.target.position.clone();
+                        }
+                    }
+                } else {
+                    this.status = 'waiting';
                 }
+            }
+        }
+
+        if (this.status === 'gathering_wood') {
+            this.wood += 2 * deltaTime;
+            if (this.wood >= 10) {
+                this.targetPosition = townCenter.position.clone();
+                this.status = 'depositing_wood';
             }
         } else if (this.status === 'depositing_wood') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -66,20 +88,10 @@ class Villager extends THREE.Mesh {
                 stoneDisplayElement.textContent = `Stone: ${town.stone}`;
             }
         } else if (this.status === 'gathering_gold') {
-            if (!this.targetPosition) {
-                this.targetPosition = this.target.position.clone();
-            }
-
-            const distanceToTarget = this.position.distanceTo(this.targetPosition);
-            if (distanceToTarget > 1) {
-                const direction = this.targetPosition.clone().sub(this.position).normalize();
-                this.position.add(direction.multiplyScalar(0.1));
-            } else {
-                this.gold += 1 * deltaTime;
-                if (this.gold >= 10) {
-                    this.targetPosition = townCenter.position.clone();
-                    this.status = 'depositing_gold';
-                }
+            this.gold += 1 * deltaTime;
+            if (this.gold >= 10) {
+                this.targetPosition = townCenter.position.clone();
+                this.status = 'depositing_gold';
             }
         } else if (this.status === 'depositing_gold') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -96,20 +108,10 @@ class Villager extends THREE.Mesh {
                 stoneDisplayElement.textContent = `Stone: ${town.stone}`;
             }
         } else if (this.status === 'gathering_stone') {
-            if (!this.targetPosition) {
-                this.targetPosition = this.target.position.clone();
-            }
-
-            const distanceToTarget = this.position.distanceTo(this.targetPosition);
-            if (distanceToTarget > 1) {
-                const direction = this.targetPosition.clone().sub(this.position).normalize();
-                this.position.add(direction.multiplyScalar(0.1));
-            } else {
-                this.stone += 1.5 * deltaTime;
-                if (this.stone >= 10) {
-                    this.targetPosition = townCenter.position.clone();
-                    this.status = 'depositing_stone';
-                }
+            this.stone += 1.5 * deltaTime;
+            if (this.stone >= 10) {
+                this.targetPosition = townCenter.position.clone();
+                this.status = 'depositing_stone';
             }
         } else if (this.status === 'depositing_stone') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -126,20 +128,10 @@ class Villager extends THREE.Mesh {
                 stoneDisplayElement.textContent = `Stone: ${town.stone}`;
             }
         } else if (this.status === 'gathering_food') {
-            if (!this.targetPosition) {
-                this.targetPosition = this.target.position.clone();
-            }
-
-            const distanceToTarget = this.position.distanceTo(this.targetPosition);
-            if (distanceToTarget > 1) {
-                const direction = this.targetPosition.clone().sub(this.position).normalize();
-                this.position.add(direction.multiplyScalar(0.1));
-            } else {
-                this.food += 1.5 * deltaTime;
-                if (this.food >= 10) {
-                    this.targetPosition = townCenter.position.clone();
-                    this.status = 'depositing_food';
-                }
+            this.food += 1.5 * deltaTime;
+            if (this.food >= 10) {
+                this.targetPosition = townCenter.position.clone();
+                this.status = 'depositing_food';
             }
         } else if (this.status === 'depositing_food') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -156,46 +148,8 @@ class Villager extends THREE.Mesh {
                 stoneDisplayElement.textContent = `Stone: ${town.stone}`;
                 foodDisplayElement.textContent = `Food: ${town.food}`;
             }
-        } else if (this.status === 'building') {
-            if (!this.targetPosition) {
-                this.targetPosition = this.target.position.clone();
-            }
-
-            const distanceToTarget = this.position.distanceTo(this.targetPosition);
-            if (distanceToTarget > 1) {
-                const direction = this.targetPosition.clone().sub(this.position).normalize();
-                this.position.add(direction.multiplyScalar(0.1));
-            } else {
-                // Simulate building progress
-                if (!this.target.buildProgress) {
-                    this.target.buildProgress = 0;
-                }
-                this.target.buildProgress += deltaTime;
-                if (this.target.buildProgress >= 5) { // 5 seconds to build
-                    this.target.userData.built = true;
-                    this.target.children[0].material.opacity = 1; // Make base opaque
-                    this.target.children[1].material.opacity = 1; // Make roof opaque
-                    this.status = 'waiting';
-                    this.targetPosition = null;
-                    console.log('Building complete!');
-                    if (this.target.userData.buildingType === 'farm') {
-                        this.status = 'gathering_food';
-                        this.target = this.target; // Set target to the newly built farm
-                        this.targetPosition = this.target.position.clone();
-                    }
-                }
-            }
-        } else if (this.targetPosition) {
-            const direction = this.targetPosition.clone().sub(this.position).normalize();
-            this.position.add(direction.multiplyScalar(0.1));
-
-            if (this.position.distanceTo(this.targetPosition) < 0.1) {
-                this.targetPosition = null;
-                this.status = 'waiting';
-            }
         }
     }
-}
 
 class Swordsman extends THREE.Mesh {
     constructor(geometry, material, labelRenderer) {
@@ -631,7 +585,7 @@ function onRightClick(event) {
     event.preventDefault();
     let screenCoords = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
     raycaster.setFromCamera(screenCoords, camera);
-    const intersects = raycaster.intersectObjects([ground]); // Only intersect with ground for placement
+    const intersects = raycaster.intersectObjects([...trees.map(t => t.children[0]), ...trees.filter(t => t.userData.type === 'goldMine').map(t => t.children[0]), ...trees.filter(t => t.userData.type === 'stoneMine').map(t => t.children[0]), ...trees.filter(t => t.userData.type === 'farm').map(t => t.children[0]), ground]);
 
     if (intersects.length > 0) {
         const intersectionPoint = intersects[0].point;
