@@ -744,11 +744,13 @@ function updateUI() {
                     <button id="build-farm">Build Farm (F)</button>
                 </div>
             `;
-            document.getElementById('build-barracks').onclick = () => {
+            document.getElementById('build-barracks').onclick = (event) => {
+                event.stopPropagation();
                 buildingMode = 'barracks';
                 console.log('Building Barracks mode activated.');
             };
-            document.getElementById('build-farm').onclick = () => {
+            document.getElementById('build-farm').onclick = (event) => {
+                event.stopPropagation();
                 buildingMode = 'farm';
                 console.log('Building Farm mode activated.');
             };
