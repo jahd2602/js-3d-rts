@@ -592,7 +592,12 @@ function onMouseUp(event) {
     if (event.button === 0) { // Left mouse button
         isDragging = false;
         selectionBoxElement.style.display = 'none';
-        selectUnits();
+
+        if (startPoint.x === event.clientX && startPoint.y === event.clientY) { // Single click
+            selectSingleUnit(event);
+        } else { // Drag selection
+            selectUnits();
+        }
     }
 }
 
@@ -680,6 +685,20 @@ function onRightClick(event) {
             }
         }
     }
+}
+
+function selectSingleUnit(event) {
+    clearSelection();
+    let screenCoords = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
+    raycaster.setFromCamera(screenCoords, camera);
+    const intersects = raycaster.intersectObjects(units);
+
+    if (intersects.length > 0) {
+        const intersectedObject = intersects[0].object;
+        selectedUnits.push(intersectedObject.parent); // Assuming unit is parent of mesh
+        intersectedObject.parent.material.color.set(0x0000ff);
+    }
+    updateUI();
 }
 
 function selectUnits() {
