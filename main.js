@@ -183,6 +183,7 @@ class Villager extends THREE.Mesh {
                         this.target = this.target; // Set target to the newly built farm
                         this.targetPosition = this.target.position.clone();
                     }
+                }
             }
         } else if (this.targetPosition) {
             const direction = this.targetPosition.clone().sub(this.position).normalize();
