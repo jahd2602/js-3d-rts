@@ -43,7 +43,7 @@ class Villager extends THREE.Mesh {
             'gathering_stone': '⛏️',
             'depositing_stone': ' depositing 🪨',
             'gathering_food': '🌾',
-            'depositing_food': ' depositing 🍞',
+            'depositing_food': ' depositing 🥩',
             'walking': '🚶'
         };
         this.statusLabel.element.textContent = statusEmojis[this.status] || this.status;
