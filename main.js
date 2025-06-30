@@ -346,7 +346,6 @@ function init() {
     window.addEventListener('mousedown', onMouseDown, false);
     window.addEventListener('mouseup', onMouseUp, false);
     window.addEventListener('contextmenu', onRightClick, false);
-    window.addEventListener('keydown', onKeyDown, false);
 }
 
 function createTownCenter() {
@@ -504,15 +503,7 @@ function researchSwordsmanAttack() {
     }
 }
 
-function onKeyDown(event) {
-    if (event.key === 'b') { // Press 'b' for barracks
-        buildingMode = 'barracks';
-        console.log('Building Barracks mode activated.');
-    } else if (event.key === 'f') { // Press 'f' for farm
-        buildingMode = 'farm';
-        console.log('Building Farm mode activated.');
-    }
-}
+
 
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -674,7 +665,19 @@ function updateUI() {
                 <div>Gold: ${Math.floor(unit.gold)}</div>
                 <div>Stone: ${Math.floor(unit.stone)}</div>
                 <div>Food: ${Math.floor(unit.food)}</div>
+                <div>
+                    <button id="build-barracks">Build Barracks</button>
+                    <button id="build-farm">Build Farm</button>
+                </div>
             `;
+            document.getElementById('build-barracks').onclick = () => {
+                buildingMode = 'barracks';
+                console.log('Building Barracks mode activated.');
+            };
+            document.getElementById('build-farm').onclick = () => {
+                buildingMode = 'farm';
+                console.log('Building Farm mode activated.');
+            };
         } else if (unit instanceof Swordsman) {
             infoPanelElement.innerHTML = `
                 <div>Unit: Swordsman</div>
