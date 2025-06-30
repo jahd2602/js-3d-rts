@@ -714,7 +714,6 @@ function updateUI() {
     stoneDisplayElement.textContent = `Stone: ${town.stone}`;
     foodDisplayElement.textContent = `Food: ${town.food}`;
 }
-}
 
 function animate() {
     requestAnimationFrame(animate);
