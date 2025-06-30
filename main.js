@@ -8,7 +8,7 @@ let selectedUnits = [];
 const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 const panSpeed = 0.1;
-let town = { wood: 0, gold: 0, stone: 0, currentAge: 1, researchedTechnologies: { swordsmanAttack: false } };
+let town = { wood: 0, gold: 0, stone: 0, food: 0, currentAge: 1, researchedTechnologies: { swordsmanAttack: false } };
 
 class Villager extends THREE.Mesh {
     constructor(geometry, material, labelRenderer) {
@@ -18,6 +18,7 @@ class Villager extends THREE.Mesh {
         this.wood = 0;
         this.gold = 0;
         this.stone = 0;
+        this.food = 0;
         this.target = null;
         this.targetPosition = null;
 
@@ -121,6 +122,37 @@ class Villager extends THREE.Mesh {
                 woodDisplayElement.textContent = `Wood: ${town.wood}`;
                 goldDisplayElement.textContent = `Gold: ${town.gold}`;
                 stoneDisplayElement.textContent = `Stone: ${town.stone}`;
+            }
+        } else if (this.status === 'gathering_food') {
+            if (!this.targetPosition) {
+                this.targetPosition = this.target.position.clone();
+            }
+
+            const distanceToTarget = this.position.distanceTo(this.targetPosition);
+            if (distanceToTarget > 1) {
+                const direction = this.targetPosition.clone().sub(this.position).normalize();
+                this.position.add(direction.multiplyScalar(0.1));
+            } else {
+                this.food += 1.5 * deltaTime;
+                if (this.food >= 10) {
+                    this.targetPosition = townCenter.position.clone();
+                    this.status = 'depositing_food';
+                }
+            }
+        } else if (this.status === 'depositing_food') {
+            const distanceToTownCenter = this.position.distanceTo(townCenter.position);
+            if (distanceToTownCenter > 2) {
+                const direction = townCenter.position.clone().sub(this.position).normalize();
+                this.position.add(direction.multiplyScalar(0.1));
+            } else {
+                town.food += Math.floor(this.food);
+                this.food = 0;
+                this.status = 'gathering_food';
+                this.targetPosition = this.target.position.clone();
+                woodDisplayElement.textContent = `Wood: ${town.wood}`;
+                goldDisplayElement.textContent = `Gold: ${town.gold}`;
+                stoneDisplayElement.textContent = `Stone: ${town.stone}`;
+                foodDisplayElement.textContent = `Food: ${town.food}`;
             }
         } else if (this.status === 'building') {
             if (!this.targetPosition) {
@@ -229,6 +261,7 @@ let infoPanelElement = document.getElementById('info-panel');
 let woodDisplayElement = document.getElementById('wood-display');
 let goldDisplayElement = document.getElementById('gold-display');
 let stoneDisplayElement = document.getElementById('stone-display');
+let foodDisplayElement = document.getElementById('food-display');
 let startPoint = new THREE.Vector2();
 let endPoint = new THREE.Vector2();
 let isDragging = false;
@@ -419,6 +452,26 @@ function createBarracks(position) {
     return barracksGroup;
 }
 
+function createFarm(position) {
+    const farmGroup = new THREE.Group();
+
+    const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+    const baseGeometry = new THREE.BoxGeometry(6, 2, 6);
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.y = 1;
+    farmGroup.add(base);
+
+    const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x006400 });
+    const roofGeometry = new THREE.PlaneGeometry(4, 4);
+    const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+    roof.rotation.x = -Math.PI / 2;
+    roof.position.y = 2.1;
+    farmGroup.add(roof);
+
+    farmGroup.position.copy(position);
+    return farmGroup;
+}
+
 function advanceAge() {
     if (town.currentAge === 1 && town.wood >= 500 && town.gold >= 200) { // Example costs for Age 2
         town.wood -= 500;
@@ -455,6 +508,9 @@ function onKeyDown(event) {
     if (event.key === 'b') { // Press 'b' for barracks
         buildingMode = 'barracks';
         console.log('Building Barracks mode activated.');
+    } else if (event.key === 'f') { // Press 'f' for farm
+        buildingMode = 'farm';
+        console.log('Building Farm mode activated.');
     }
 }
 
@@ -508,6 +564,10 @@ function onRightClick(event) {
                 const barracksSite = createBuildingSite(intersectionPoint, 'barracks');
                 scene.add(barracksSite);
                 console.log('Barracks building site placed!');
+            } else if (buildingMode === 'farm') {
+                const farmSite = createBuildingSite(intersectionPoint, 'farm');
+                scene.add(farmSite);
+                console.log('Farm building site placed!');
             }
             buildingMode = null; // Exit building mode after placement
         } else {
@@ -529,6 +589,12 @@ function onRightClick(event) {
                 selectedUnits.forEach(villager => {
                     villager.target = stoneMine;
                     villager.status = 'gathering_stone';
+                });
+            } else if (intersectedObject.geometry.type === 'PlaneGeometry') { // It's a farm
+                const farm = intersectedObject.parent;
+                selectedUnits.forEach(villager => {
+                    villager.target = farm;
+                    villager.status = 'gathering_food';
                 });
             } else if (intersectedObject === ground) {
                 const targetPosition = intersects[0].point;
@@ -607,6 +673,7 @@ function updateUI() {
                 <div>Wood: ${Math.floor(unit.wood)}</div>
                 <div>Gold: ${Math.floor(unit.gold)}</div>
                 <div>Stone: ${Math.floor(unit.stone)}</div>
+                <div>Food: ${Math.floor(unit.food)}</div>
             `;
         } else if (unit instanceof Swordsman) {
             infoPanelElement.innerHTML = `
@@ -640,6 +707,13 @@ function updateUI() {
         <div><button id="advance-age">Advance Age</button></div>
     `;
     document.getElementById('advance-age').onclick = advanceAge;
+
+    // Update resource displays
+    woodDisplayElement.textContent = `Wood: ${town.wood}`;
+    goldDisplayElement.textContent = `Gold: ${town.gold}`;
+    stoneDisplayElement.textContent = `Stone: ${town.stone}`;
+    foodDisplayElement.textContent = `Food: ${town.food}`;
+}
 }
 
 function animate() {
