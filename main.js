@@ -277,9 +277,11 @@ function init() {
     scene.background = new THREE.Color(0xbfd1e5);
 
     // Camera
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 20, 30);
-    camera.lookAt(0, 0, 0);
+    const aspect = window.innerWidth / window.innerHeight;
+            const frustumSize = 60; // Adjust this value to control the zoom level
+            camera = new THREE.OrthographicCamera(frustumSize * aspect / -2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 0.1, 1000);
+            camera.position.set(50, 50, 50); // Set camera position for isometric view
+            camera.lookAt(0, 0, 0);
 
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -523,7 +525,12 @@ function onKeyDown(event) {
 }
 
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const aspect = window.innerWidth / window.innerHeight;
+    const frustumSize = 60; // Should match the value in init()
+    camera.left = frustumSize * aspect / -2;
+    camera.right = frustumSize * aspect / 2;
+    camera.top = frustumSize / 2;
+    camera.bottom = frustumSize / -2;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     labelRenderer.setSize(window.innerWidth, window.innerHeight);
