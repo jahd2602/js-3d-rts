@@ -58,7 +58,9 @@ class Villager extends THREE.Mesh {
                 this.wood = 0;
                 this.status = 'gathering_wood';
                 this.targetPosition = this.target.position.clone();
-                woodCounterElement.textContent = `Wood: ${town.wood} Gold: ${town.gold} Stone: ${town.stone}`;
+                woodDisplayElement.textContent = `Wood: ${town.wood}`;
+                goldDisplayElement.textContent = `Gold: ${town.gold}`;
+                stoneDisplayElement.textContent = `Stone: ${town.stone}`;
             }
         } else if (this.status === 'gathering_gold') {
             if (!this.targetPosition) {
@@ -86,7 +88,9 @@ class Villager extends THREE.Mesh {
                 this.gold = 0;
                 this.status = 'gathering_gold';
                 this.targetPosition = this.target.position.clone();
-                woodCounterElement.textContent = `Wood: ${town.wood} Gold: ${town.gold} Stone: ${town.stone}`;
+                woodDisplayElement.textContent = `Wood: ${town.wood}`;
+                goldDisplayElement.textContent = `Gold: ${town.gold}`;
+                stoneDisplayElement.textContent = `Stone: ${town.stone}`;
             }
         } else if (this.status === 'gathering_stone') {
             if (!this.targetPosition) {
@@ -114,7 +118,9 @@ class Villager extends THREE.Mesh {
                 this.stone = 0;
                 this.status = 'gathering_stone';
                 this.targetPosition = this.target.position.clone();
-                woodCounterElement.textContent = `Wood: ${town.wood} Gold: ${town.gold} Stone: ${town.stone}`;
+                woodDisplayElement.textContent = `Wood: ${town.wood}`;
+                goldDisplayElement.textContent = `Gold: ${town.gold}`;
+                stoneDisplayElement.textContent = `Stone: ${town.stone}`;
             }
         } else if (this.status === 'building') {
             if (!this.targetPosition) {
@@ -220,7 +226,9 @@ class Swordsman extends THREE.Mesh {
 
 let selectionBoxElement = document.getElementById('selection-box');
 let infoPanelElement = document.getElementById('info-panel');
-let woodCounterElement = document.getElementById('wood-counter');
+let woodDisplayElement = document.getElementById('wood-display');
+let goldDisplayElement = document.getElementById('gold-display');
+let stoneDisplayElement = document.getElementById('stone-display');
 let startPoint = new THREE.Vector2();
 let endPoint = new THREE.Vector2();
 let isDragging = false;

@@ -21,13 +21,15 @@
             padding: 10px;
             box-sizing: border-box;
         }
-        #wood-counter {
+        #resource-display {
             position: absolute;
             top: 10px;
             left: 10px;
             background-color: rgba(0, 0, 0, 0.7);
             color: #fff;
             padding: 5px;
+            display: flex;
+            gap: 10px;
         }
         .label {
             color: #fff;
@@ -39,7 +41,11 @@
 </head>
 <body>
     <div id="selection-box"></div>
-    <div id="wood-counter">Wood: 0</div>
+    <div id="resource-display">
+        <span id="wood-display">Wood: 0</span>
+        <span id="gold-display">Gold: 0</span>
+        <span id="stone-display">Stone: 0</span>
+    </div>
     <div id="info-panel"></div>
     <script type="importmap">
         {
