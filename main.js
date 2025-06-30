@@ -474,6 +474,7 @@ function createFarm(position = new THREE.Vector3()) {
     farmGroup.add(roof);
 
     farmGroup.position.copy(position);
+    farmGroup.userData.type = 'farm';
     return farmGroup;
 }
 
@@ -645,7 +646,7 @@ function onRightClick(event) {
                     villager.target = stoneMine;
                     villager.status = 'gathering_stone';
                 });
-            } else if (intersectedObject.geometry.type === 'PlaneGeometry') { // It's a farm
+            } else if (intersectedObject.parent.userData.type === 'farm') { // It's a farm
                 const farm = intersectedObject.parent;
                 selectedUnits.forEach(villager => {
                     villager.target = farm;
