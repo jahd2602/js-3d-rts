@@ -8,7 +8,7 @@ let selectedUnits = [];
 const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 const panSpeed = 0.1;
-let town = { wood: 0 };
+let town = { wood: 0, gold: 0, stone: 0 };
 
 class Villager extends THREE.Mesh {
     constructor(geometry, material, labelRenderer) {
@@ -16,6 +16,8 @@ class Villager extends THREE.Mesh {
         this.status = 'waiting';
         this.hitpoints = 10;
         this.wood = 0;
+        this.gold = 0;
+        this.stone = 0;
         this.target = null;
         this.targetPosition = null;
 
@@ -30,7 +32,7 @@ class Villager extends THREE.Mesh {
     update(deltaTime, townCenter, town) {
         this.statusLabel.element.textContent = this.status;
 
-        if (this.status === 'gathering') {
+        if (this.status === 'gathering_wood') {
             if (!this.targetPosition) {
                 this.targetPosition = this.target.position.clone();
             }
@@ -43,10 +45,10 @@ class Villager extends THREE.Mesh {
                 this.wood += 2 * deltaTime;
                 if (this.wood >= 10) {
                     this.targetPosition = townCenter.position.clone();
-                    this.status = 'depositing';
+                    this.status = 'depositing_wood';
                 }
             }
-        } else if (this.status === 'depositing') {
+        } else if (this.status === 'depositing_wood') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
             if (distanceToTownCenter > 2) {
                 const direction = townCenter.position.clone().sub(this.position).normalize();
@@ -54,9 +56,65 @@ class Villager extends THREE.Mesh {
             } else {
                 town.wood += Math.floor(this.wood);
                 this.wood = 0;
-                this.status = 'gathering';
+                this.status = 'gathering_wood';
                 this.targetPosition = this.target.position.clone();
-                woodCounterElement.textContent = `Wood: ${town.wood}`;
+                woodCounterElement.textContent = `Wood: ${town.wood} Gold: ${town.gold} Stone: ${town.stone}`;
+            }
+        } else if (this.status === 'gathering_gold') {
+            if (!this.targetPosition) {
+                this.targetPosition = this.target.position.clone();
+            }
+
+            const distanceToTarget = this.position.distanceTo(this.targetPosition);
+            if (distanceToTarget > 1) {
+                const direction = this.targetPosition.clone().sub(this.position).normalize();
+                this.position.add(direction.multiplyScalar(0.1));
+            } else {
+                this.gold += 1 * deltaTime;
+                if (this.gold >= 10) {
+                    this.targetPosition = townCenter.position.clone();
+                    this.status = 'depositing_gold';
+                }
+            }
+        } else if (this.status === 'depositing_gold') {
+            const distanceToTownCenter = this.position.distanceTo(townCenter.position);
+            if (distanceToTownCenter > 2) {
+                const direction = townCenter.position.clone().sub(this.position).normalize();
+                this.position.add(direction.multiplyScalar(0.1));
+            } else {
+                town.gold += Math.floor(this.gold);
+                this.gold = 0;
+                this.status = 'gathering_gold';
+                this.targetPosition = this.target.position.clone();
+                woodCounterElement.textContent = `Wood: ${town.wood} Gold: ${town.gold} Stone: ${town.stone}`;
+            }
+        } else if (this.status === 'gathering_stone') {
+            if (!this.targetPosition) {
+                this.targetPosition = this.target.position.clone();
+            }
+
+            const distanceToTarget = this.position.distanceTo(this.targetPosition);
+            if (distanceToTarget > 1) {
+                const direction = this.targetPosition.clone().sub(this.position).normalize();
+                this.position.add(direction.multiplyScalar(0.1));
+            } else {
+                this.stone += 1.5 * deltaTime;
+                if (this.stone >= 10) {
+                    this.targetPosition = townCenter.position.clone();
+                    this.status = 'depositing_stone';
+                }
+            }
+        } else if (this.status === 'depositing_stone') {
+            const distanceToTownCenter = this.position.distanceTo(townCenter.position);
+            if (distanceToTownCenter > 2) {
+                const direction = townCenter.position.clone().sub(this.position).normalize();
+                this.position.add(direction.multiplyScalar(0.1));
+            } else {
+                town.stone += Math.floor(this.stone);
+                this.stone = 0;
+                this.status = 'gathering_stone';
+                this.targetPosition = this.target.position.clone();
+                woodCounterElement.textContent = `Wood: ${town.wood} Gold: ${town.gold} Stone: ${town.stone}`;
             }
         } else if (this.targetPosition) {
             const direction = this.targetPosition.clone().sub(this.position).normalize();
@@ -128,6 +186,20 @@ function init() {
         scene.add(tree);
     }
 
+    // Gold Mines
+    for (let i = 0; i < 5; i++) {
+        const goldMine = createGoldMine(new THREE.Vector3(Math.random() * 80 - 40, 0, Math.random() * 80 - 40));
+        trees.push(goldMine); // Reusing trees array for now, will refactor later
+        scene.add(goldMine);
+    }
+
+    // Stone Mines
+    for (let i = 0; i < 5; i++) {
+        const stoneMine = createStoneMine(new THREE.Vector3(Math.random() * 80 - 40, 0, Math.random() * 80 - 40));
+        trees.push(stoneMine); // Reusing trees array for now, will refactor later
+        scene.add(stoneMine);
+    }
+
     // Units
     const unitGeometry = new THREE.BoxGeometry(1, 1, 1);
     const unitMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
@@ -184,6 +256,32 @@ function createTree(position) {
     return treeGroup;
 }
 
+function createGoldMine(position) {
+    const goldMineGroup = new THREE.Group();
+
+    const baseMaterial = new THREE.MeshStandardMaterial({ color: 0xFFD700 }); // Gold color
+    const baseGeometry = new THREE.SphereGeometry(2, 16, 16);
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.y = 1;
+    goldMineGroup.add(base);
+
+    goldMineGroup.position.copy(position);
+    return goldMineGroup;
+}
+
+function createStoneMine(position) {
+    const stoneMineGroup = new THREE.Group();
+
+    const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 }); // Stone color
+    const baseGeometry = new THREE.BoxGeometry(3, 3, 3);
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.y = 1.5;
+    stoneMineGroup.add(base);
+
+    stoneMineGroup.position.copy(position);
+    return stoneMineGroup;
+}
+
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -232,7 +330,19 @@ function onRightClick(event) {
             const tree = intersectedObject.parent;
             selectedUnits.forEach(villager => {
                 villager.target = tree;
-                villager.status = 'gathering';
+                villager.status = 'gathering_wood';
+            });
+        } else if (intersectedObject.geometry.type === 'SphereGeometry') { // It's a gold mine
+            const goldMine = intersectedObject.parent;
+            selectedUnits.forEach(villager => {
+                villager.target = goldMine;
+                villager.status = 'gathering_gold';
+            });
+        } else if (intersectedObject.geometry.type === 'BoxGeometry') { // It's a stone mine
+            const stoneMine = intersectedObject.parent;
+            selectedUnits.forEach(villager => {
+                villager.target = stoneMine;
+                villager.status = 'gathering_stone';
             });
         } else {
             const targetPosition = intersects[0].point;
@@ -278,6 +388,8 @@ function updateUI() {
             <div>Unit: Villager</div>
             <div>Hitpoints: ${unit.hitpoints}</div>
             <div>Wood: ${Math.floor(unit.wood)}</div>
+            <div>Gold: ${Math.floor(unit.gold)}</div>
+            <div>Stone: ${Math.floor(unit.stone)}</div>
         `;
     } else if (selectedUnits.length > 1) {
         infoPanelElement.innerHTML = `<div>${selectedUnits.length} units selected</div>`;
