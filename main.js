@@ -1,0 +1,308 @@
+import * as THREE from 'three';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+let scene, camera, renderer, labelRenderer;
+let ground, townCenter;
+let units = [], trees = [];
+let selectedUnits = [];
+const mouse = new THREE.Vector2();
+const raycaster = new THREE.Raycaster();
+const panSpeed = 0.1;
+let town = { wood: 0 };
+
+let selectionBoxElement = document.getElementById('selection-box');
+let infoPanelElement = document.getElementById('info-panel');
+let woodCounterElement = document.getElementById('wood-counter');
+let startPoint = new THREE.Vector2();
+let endPoint = new THREE.Vector2();
+let isDragging = false;
+
+init();
+animate();
+
+function init() {
+    // Scene
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xbfd1e5);
+
+    // Camera
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 20, 30);
+    camera.lookAt(0, 0, 0);
+
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Label Renderer
+    labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.domElement.style.position = 'absolute';
+    labelRenderer.domElement.style.top = '0px';
+    document.body.appendChild(labelRenderer.domElement);
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    directionalLight.position.set(0, 10, 0);
+    scene.add(directionalLight);
+
+    // Ground
+    const groundGeometry = new THREE.PlaneGeometry(100, 100);
+    const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+    ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
+
+    // Town Center
+    townCenter = createTownCenter();
+    scene.add(townCenter);
+
+    // Trees
+    for (let i = 0; i < 20; i++) {
+        const tree = createTree(new THREE.Vector3(Math.random() * 80 - 40, 0, Math.random() * 80 - 40));
+        trees.push(tree);
+        scene.add(tree);
+    }
+
+    // Units
+    const unitGeometry = new THREE.BoxGeometry(1, 1, 1);
+    for (let i = 0; i < 10; i++) {
+        const unitMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+        const unit = new THREE.Mesh(unitGeometry, unitMaterial);
+        unit.position.set(Math.random() * 40 - 20, 0.5, Math.random() * 40 - 20);
+        unit.status = 'waiting';
+        unit.hitpoints = 10;
+        unit.wood = 0;
+
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'label';
+        labelDiv.textContent = unit.status;
+        const statusLabel = new CSS2DObject(labelDiv);
+        statusLabel.position.set(0, 1.5, 0);
+        unit.add(statusLabel);
+
+        units.push(unit);
+        scene.add(unit);
+    }
+
+    window.addEventListener('resize', onWindowResize, false);
+    window.addEventListener('mousemove', onMouseMove, false);
+    window.addEventListener('mousedown', onMouseDown, false);
+    window.addEventListener('mouseup', onMouseUp, false);
+    window.addEventListener('contextmenu', onRightClick, false);
+}
+
+function createTownCenter() {
+    const townCenterGroup = new THREE.Group();
+
+    const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+    const baseGeometry = new THREE.BoxGeometry(10, 4, 10);
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.y = 2;
+    townCenterGroup.add(base);
+
+    const roofMaterial = new THREE.MeshStandardMaterial({ color: 0xA52A2A });
+    const roofGeometry = new THREE.ConeGeometry(8, 4, 4);
+    const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+    roof.position.y = 6;
+    roof.rotation.y = Math.PI / 4;
+    townCenterGroup.add(roof);
+
+    townCenterGroup.position.set(0, 0, 0);
+    return townCenterGroup;
+}
+
+function createTree(position) {
+    const treeGroup = new THREE.Group();
+
+    const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+    const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.5, 4);
+    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+    trunk.position.y = 2;
+    treeGroup.add(trunk);
+
+    const leavesMaterial = new THREE.MeshStandardMaterial({ color: 0x006400 });
+    const leavesGeometry = new THREE.SphereGeometry(3, 8, 6);
+    const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+    leaves.position.y = 5;
+    treeGroup.add(leaves);
+
+    treeGroup.position.copy(position);
+    return treeGroup;
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function onMouseMove(event) {
+    mouse.x = event.clientX;
+    mouse.y = event.clientY;
+
+    if (isDragging) {
+        endPoint.set(event.clientX, event.clientY);
+        selectionBoxElement.style.width = Math.abs(endPoint.x - startPoint.x) + 'px';
+        selectionBoxElement.style.height = Math.abs(endPoint.y - startPoint.y) + 'px';
+        selectionBoxElement.style.left = Math.min(startPoint.x, endPoint.x) + 'px';
+        selectionBoxElement.style.top = Math.min(startPoint.y, endPoint.y) + 'px';
+    }
+}
+
+function onMouseDown(event) {
+    if (event.button === 0) { // Left mouse button
+        isDragging = true;
+        selectionBoxElement.style.display = 'block';
+        startPoint.set(event.clientX, event.clientY);
+    }
+}
+
+function onMouseUp(event) {
+    if (event.button === 0) { // Left mouse button
+        isDragging = false;
+        selectionBoxElement.style.display = 'none';
+        selectUnits();
+    }
+}
+
+function onRightClick(event) {
+    event.preventDefault();
+    let screenCoords = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
+    raycaster.setFromCamera(screenCoords, camera);
+    const intersects = raycaster.intersectObjects([...trees.map(t => t.children[0]), ground]);
+
+    if (intersects.length > 0) {
+        const intersectedObject = intersects[0].object;
+        if (intersectedObject.geometry.type === 'CylinderGeometry') { // It's a tree trunk
+            const tree = intersectedObject.parent;
+            selectedUnits.forEach(unit => {
+                unit.target = tree;
+                unit.status = 'gathering';
+            });
+        } else {
+            const targetPosition = intersects[0].point;
+            selectedUnits.forEach(unit => {
+                unit.targetPosition = targetPosition;
+                unit.status = 'walking';
+            });
+        }
+    }
+}
+
+function selectUnits() {
+    clearSelection();
+    const selectionBox = new THREE.Box2();
+    const start = new THREE.Vector2(Math.min(startPoint.x, endPoint.x), Math.min(startPoint.y, endPoint.y));
+    const end = new THREE.Vector2(Math.max(startPoint.x, endPoint.x), Math.max(startPoint.y, endPoint.y));
+    selectionBox.setFromPoints([start, end]);
+
+    units.forEach(unit => {
+        const screenPos = unit.position.clone().project(camera);
+        const screenCoords = new THREE.Vector2((screenPos.x + 1) * window.innerWidth / 2, (-screenPos.y + 1) * window.innerHeight / 2);
+
+        if (selectionBox.containsPoint(screenCoords)) {
+            selectedUnits.push(unit);
+            unit.material.color.set(0x0000ff);
+        }
+    });
+    updateUI();
+}
+
+function clearSelection() {
+    selectedUnits.forEach(unit => {
+        unit.material.color.set(0xff0000);
+    });
+    selectedUnits = [];
+    updateUI();
+}
+
+function updateUI() {
+    if (selectedUnits.length === 1) {
+        const unit = selectedUnits[0];
+        infoPanelElement.innerHTML = `
+            <div>Unit: Villager</div>
+            <div>Hitpoints: ${unit.hitpoints}</div>
+            <div>Wood: ${Math.floor(unit.wood)}</div>
+        `;
+    } else if (selectedUnits.length > 1) {
+        infoPanelElement.innerHTML = `<div>${selectedUnits.length} units selected</div>`;
+    } else {
+        infoPanelElement.innerHTML = '';
+    }
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    // Camera Pan
+    if (mouse.x < 50) {
+        camera.position.x -= panSpeed;
+    } else if (mouse.x > window.innerWidth - 50) {
+        camera.position.x += panSpeed;
+    }
+
+    if (mouse.y < 50) {
+        camera.position.z -= panSpeed;
+    } else if (mouse.y > window.innerHeight - 50) {
+        camera.position.z += panSpeed;
+    }
+
+    updateUnits();
+    updateUI();
+
+    renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
+}
+
+function updateUnits() {
+    const deltaTime = 0.016; // Assume 60 FPS
+
+    units.forEach(unit => {
+        // Update status label
+        unit.children[0].element.textContent = unit.status;
+
+        if (unit.status === 'gathering') {
+            if (!unit.targetPosition) {
+                unit.targetPosition = unit.target.position.clone();
+            }
+
+            const distanceToTarget = unit.position.distanceTo(unit.targetPosition);
+            if (distanceToTarget > 1) {
+                const direction = unit.targetPosition.clone().sub(unit.position).normalize();
+                unit.position.add(direction.multiplyScalar(0.1));
+            } else {
+                unit.wood += 2 * deltaTime;
+                if (unit.wood >= 10) {
+                    unit.targetPosition = townCenter.position.clone();
+                    unit.status = 'depositing';
+                }
+            }
+        } else if (unit.status === 'depositing') {
+            const distanceToTownCenter = unit.position.distanceTo(townCenter.position);
+            if (distanceToTownCenter > 2) {
+                const direction = townCenter.position.clone().sub(unit.position).normalize();
+                unit.position.add(direction.multiplyScalar(0.1));
+            } else {
+                town.wood += Math.floor(unit.wood);
+                unit.wood = 0;
+                unit.status = 'gathering';
+                unit.targetPosition = unit.target.position.clone();
+                woodCounterElement.textContent = `Wood: ${town.wood}`;
+            }
+        } else if (unit.targetPosition) {
+            const direction = unit.targetPosition.clone().sub(unit.position).normalize();
+            unit.position.add(direction.multiplyScalar(0.1));
+
+            if (unit.position.distanceTo(unit.targetPosition) < 0.1) {
+                unit.targetPosition = null;
+                unit.status = 'waiting';
+            }
+        }
+    });
+}
