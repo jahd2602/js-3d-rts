@@ -159,6 +159,8 @@ class Swordsman extends THREE.Mesh {
         this.defense = 5;
         this.target = null;
         this.targetPosition = null;
+        this.attackCooldown = 1; // seconds
+        this.lastAttackTime = 0;
 
         const labelDiv = document.createElement('div');
         labelDiv.className = 'label';
@@ -169,9 +171,33 @@ class Swordsman extends THREE.Mesh {
     }
 
     update(deltaTime) {
-        this.statusLabel.element.textContent = this.status;
+        this.statusLabel.element.textContent = `${this.status} HP: ${this.hitpoints}`;
 
-        if (this.targetPosition) {
+        if (this.status === 'attacking') {
+            if (this.target && this.target.hitpoints > 0) {
+                const distanceToTarget = this.position.distanceTo(this.target.position);
+                if (distanceToTarget > 2) { // Move closer to attack
+                    const direction = this.target.position.clone().sub(this.position).normalize();
+                    this.position.add(direction.multiplyScalar(0.1));
+                } else {
+                    if (performance.now() / 1000 - this.lastAttackTime > this.attackCooldown) {
+                        this.target.hitpoints -= this.attack; // Simple damage calculation
+                        this.lastAttackTime = performance.now() / 1000;
+                        console.log(`Swordsman attacked! Target HP: ${this.target.hitpoints}`);
+                        if (this.target.hitpoints <= 0) {
+                            console.log('Target destroyed!');
+                            scene.remove(this.target);
+                            units = units.filter(unit => unit !== this.target);
+                            this.status = 'waiting';
+                            this.target = null;
+                        }
+                    }
+                }
+            } else {
+                this.status = 'waiting';
+                this.target = null;
+            }
+        } else if (this.targetPosition) {
             const direction = this.targetPosition.clone().sub(this.position).normalize();
             this.position.add(direction.multiplyScalar(0.1));
 
@@ -478,6 +504,17 @@ function onRightClick(event) {
                     }
                 });
                 selectedUnits = [barracks]; // Select the barracks
+            } else if (units.includes(intersectedObject.parent)) { // Check if the intersected object is a unit
+                const targetUnit = intersectedObject.parent;
+                selectedUnits.forEach(unit => {
+                    if (unit instanceof Swordsman) {
+                        unit.target = targetUnit;
+                        unit.status = 'attacking';
+                    } else {
+                        unit.targetPosition = targetUnit.position.clone();
+                        unit.status = 'walking';
+                    }
+                });
             }
         }
     }
@@ -569,6 +606,10 @@ function updateUnits() {
     const deltaTime = 0.016; // Assume 60 FPS
 
     units.forEach(unit => {
-        unit.update(deltaTime, townCenter, town);
+        if (unit instanceof Villager) {
+            unit.update(deltaTime, townCenter, town);
+        } else if (unit instanceof Swordsman) {
+            unit.update(deltaTime);
+        }
     });
 }
