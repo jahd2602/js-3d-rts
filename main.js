@@ -33,7 +33,20 @@ class Villager extends THREE.Mesh {
     }
 
     update(deltaTime, townCenter, town) {
-        this.statusLabel.element.textContent = this.status;
+        const statusEmojis = {
+            'waiting': '🧍',
+            'building': '🔨',
+            'gathering_wood': '🪓',
+            'depositing_wood': ' depositing 🪵',
+            'gathering_gold': '⛏️',
+            'depositing_gold': ' depositing 💰',
+            'gathering_stone': '⛏️',
+            'depositing_stone': ' depositing 🪨',
+            'gathering_food': '🌾',
+            'depositing_food': ' depositing 🍞',
+            'walking': '🚶'
+        };
+        this.statusLabel.element.textContent = statusEmojis[this.status] || this.status;
 
         if (this.targetPosition) {
             const distanceToTarget = this.position.distanceTo(this.targetPosition);
@@ -68,10 +81,12 @@ class Villager extends THREE.Mesh {
         }
 
         if (this.status === 'gathering_wood') {
-            this.wood += 2 * deltaTime;
-            if (this.wood >= 10) {
-                this.targetPosition = townCenter.position.clone();
-                this.status = 'depositing_wood';
+            if (this.position.distanceTo(this.target.position) < 2) {
+                this.wood += 2 * deltaTime;
+                if (this.wood >= 10) {
+                    this.targetPosition = townCenter.position.clone();
+                    this.status = 'depositing_wood';
+                }
             }
         } else if (this.status === 'depositing_wood') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -83,15 +98,17 @@ class Villager extends THREE.Mesh {
                 this.wood = 0;
                 this.status = 'gathering_wood';
                 this.targetPosition = this.target.position.clone();
-                woodDisplayElement.textContent = `Wood: ${town.wood}`;
-                goldDisplayElement.textContent = `Gold: ${town.gold}`;
-                stoneDisplayElement.textContent = `Stone: ${town.stone}`;
+                woodDisplayElement.textContent = `🪵: ${town.wood}`;
+                goldDisplayElement.textContent = `💰: ${town.gold}`;
+                stoneDisplayElement.textContent = `🪨: ${town.stone}`;
             }
         } else if (this.status === 'gathering_gold') {
-            this.gold += 1 * deltaTime;
-            if (this.gold >= 10) {
-                this.targetPosition = townCenter.position.clone();
-                this.status = 'depositing_gold';
+            if (this.position.distanceTo(this.target.position) < 2) {
+                this.gold += 1 * deltaTime;
+                if (this.gold >= 10) {
+                    this.targetPosition = townCenter.position.clone();
+                    this.status = 'depositing_gold';
+                }
             }
         } else if (this.status === 'depositing_gold') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -103,15 +120,17 @@ class Villager extends THREE.Mesh {
                 this.gold = 0;
                 this.status = 'gathering_gold';
                 this.targetPosition = this.target.position.clone();
-                woodDisplayElement.textContent = `Wood: ${town.wood}`;
-                goldDisplayElement.textContent = `Gold: ${town.gold}`;
-                stoneDisplayElement.textContent = `Stone: ${town.stone}`;
+                woodDisplayElement.textContent = `🪵: ${town.wood}`;
+                goldDisplayElement.textContent = `💰: ${town.gold}`;
+                stoneDisplayElement.textContent = `🪨: ${town.stone}`;
             }
         } else if (this.status === 'gathering_stone') {
-            this.stone += 1.5 * deltaTime;
-            if (this.stone >= 10) {
-                this.targetPosition = townCenter.position.clone();
-                this.status = 'depositing_stone';
+            if (this.position.distanceTo(this.target.position) < 2) {
+                this.stone += 1.5 * deltaTime;
+                if (this.stone >= 10) {
+                    this.targetPosition = townCenter.position.clone();
+                    this.status = 'depositing_stone';
+                }
             }
         } else if (this.status === 'depositing_stone') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -123,15 +142,17 @@ class Villager extends THREE.Mesh {
                 this.stone = 0;
                 this.status = 'gathering_stone';
                 this.targetPosition = this.target.position.clone();
-                woodDisplayElement.textContent = `Wood: ${town.wood}`;
-                goldDisplayElement.textContent = `Gold: ${town.gold}`;
-                stoneDisplayElement.textContent = `Stone: ${town.stone}`;
+                woodDisplayElement.textContent = `🪵: ${town.wood}`;
+                goldDisplayElement.textContent = `💰: ${town.gold}`;
+                stoneDisplayElement.textContent = `🪨: ${town.stone}`;
             }
         } else if (this.status === 'gathering_food') {
-            this.food += 1.5 * deltaTime;
-            if (this.food >= 10) {
-                this.targetPosition = townCenter.position.clone();
-                this.status = 'depositing_food';
+            if (this.position.distanceTo(this.target.position) < 2) {
+                this.food += 1.5 * deltaTime;
+                if (this.food >= 10) {
+                    this.targetPosition = townCenter.position.clone();
+                    this.status = 'depositing_food';
+                }
             }
         } else if (this.status === 'depositing_food') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -143,13 +164,14 @@ class Villager extends THREE.Mesh {
                 this.food = 0;
                 this.status = 'gathering_food';
                 this.targetPosition = this.target.position.clone();
-                woodDisplayElement.textContent = `Wood: ${town.wood}`;
-                goldDisplayElement.textContent = `Gold: ${town.gold}`;
-                stoneDisplayElement.textContent = `Stone: ${town.stone}`;
-                foodDisplayElement.textContent = `Food: ${town.food}`;
+                woodDisplayElement.textContent = `🪵: ${town.wood}`;
+                goldDisplayElement.textContent = `💰: ${town.gold}`;
+                stoneDisplayElement.textContent = `🪨: ${town.stone}`;
+                foodDisplayElement.textContent = `🍞: ${town.food}`;
             }
         }
     }
+}
 
 class Swordsman extends THREE.Mesh {
     constructor(geometry, material, labelRenderer) {
@@ -172,7 +194,12 @@ class Swordsman extends THREE.Mesh {
     }
 
     update(deltaTime) {
-        this.statusLabel.element.textContent = `${this.status} HP: ${this.hitpoints}`;
+        const statusEmojis = {
+            'waiting': '🧍',
+            'attacking': '⚔️',
+            'walking': '🚶'
+        };
+        this.statusLabel.element.textContent = `${statusEmojis[this.status] || this.status} ❤️: ${this.hitpoints}`;
 
         if (this.status === 'attacking') {
             if (this.target && this.target.hitpoints > 0) {
@@ -408,11 +435,11 @@ function createBarracks(position = new THREE.Vector3()) {
             swordsman.position.set(this.position.x + Math.random() * 2 - 1, 0.5, this.position.z + Math.random() * 2 - 1);
             units.push(swordsman);
             scene.add(swordsman);
-            woodDisplayElement.textContent = `Wood: ${town.wood}`;
-            goldDisplayElement.textContent = `Gold: ${town.gold}`;
-            stoneDisplayElement.textContent = `Stone: ${town.stone}`;
-            foodDisplayElement.textContent = `Food: ${town.food}`;
-            console.log('Swordsman created!');
+            woodDisplayElement.textContent = `🪵: ${town.wood}`;
+            goldDisplayElement.textContent = `💰: ${town.gold}`;
+            stoneDisplayElement.textContent = `🪨: ${town.stone}`;
+            foodDisplayElement.textContent = `🍞: ${town.food}`;
+            console.log('Swordsman created! ⚔️');
         } else {
             console.log('Not enough resources to create Swordsman!');
         }
@@ -713,12 +740,12 @@ function updateUI() {
         const unit = selectedUnits[0];
         if (unit instanceof Villager) {
             infoPanelElement.innerHTML = `
-                <div>Unit: Villager</div>
-                <div>Hitpoints: ${unit.hitpoints}</div>
-                <div>Wood: ${Math.floor(unit.wood)}</div>
-                <div>Gold: ${Math.floor(unit.gold)}</div>
-                <div>Stone: ${Math.floor(unit.stone)}</div>
-                <div>Food: ${Math.floor(unit.food)}</div>
+                <div>🧍 Villager</div>
+                <div>❤️: ${unit.hitpoints}</div>
+                <div>🪵: ${Math.floor(unit.wood)}</div>
+                <div>💰: ${Math.floor(unit.gold)}</div>
+                <div>🪨: ${Math.floor(unit.stone)}</div>
+                <div>🍞: ${Math.floor(unit.food)}</div>
                 <div>
                     <button id="build-barracks">Build Barracks (B)</button>
                     <button id="build-farm">Build Farm (F)</button>
@@ -736,10 +763,10 @@ function updateUI() {
             };
         } else if (unit instanceof Swordsman) {
             infoPanelElement.innerHTML = `
-                <div>Unit: Swordsman</div>
-                <div>Hitpoints: ${unit.hitpoints}</div>
-                <div>Attack: ${unit.attack}</div>
-                <div>Defense: ${unit.defense}</div>
+                <div>⚔️ Swordsman</div>
+                <div>❤️: ${unit.hitpoints}</div>
+                <div>⚔️: ${unit.attack}</div>
+                <div>🛡️: ${unit.defense}</div>
             `;
         } else if (unit.userData.type === 'barracks') {
             infoPanelElement.innerHTML = `
@@ -752,7 +779,7 @@ function updateUI() {
         } else if (unit === townCenter) {
             infoPanelElement.innerHTML = `
                 <div>Building: Town Center</div>
-                <div>Hitpoints: ${townCenter.hitpoints}</div>
+                <div>❤️: ${townCenter.hitpoints}</div>
             `;
         }
     } else if (selectedUnits.length > 1) {
@@ -768,10 +795,10 @@ function updateUI() {
     document.getElementById('advance-age').onclick = advanceAge;
 
     // Update resource displays
-    woodDisplayElement.textContent = `Wood: ${town.wood}`;
-    goldDisplayElement.textContent = `Gold: ${town.gold}`;
-    stoneDisplayElement.textContent = `Stone: ${town.stone}`;
-    foodDisplayElement.textContent = `Food: ${town.food}`;
+    woodDisplayElement.textContent = `🪵: ${town.wood}`;
+    goldDisplayElement.textContent = `💰: ${town.gold}`;
+    stoneDisplayElement.textContent = `🪨: ${town.stone}`;
+    foodDisplayElement.textContent = `🍞: ${town.food}`;
 }
 
 function animate() {
