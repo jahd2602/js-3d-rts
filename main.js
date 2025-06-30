@@ -456,9 +456,9 @@ function onRightClick(event) {
                 });
             } else if (intersectedObject === ground) {
                 const targetPosition = intersects[0].point;
-                selectedUnits.forEach(villager => {
-                    villager.targetPosition = targetPosition;
-                    villager.status = 'walking';
+                selectedUnits.forEach(unit => {
+                    unit.targetPosition = targetPosition;
+                    unit.status = 'walking';
                 });
             } else if (intersectedObject.parent.userData.type === 'building_site') {
                 const buildingSite = intersectedObject.parent;
@@ -466,6 +466,18 @@ function onRightClick(event) {
                     villager.target = buildingSite;
                     villager.status = 'building';
                 });
+            } else if (intersectedObject.parent.userData.type === 'barracks') {
+                const barracks = intersectedObject.parent;
+                selectedUnits.forEach(unit => {
+                    if (unit instanceof Villager) {
+                        unit.targetPosition = barracks.position.clone();
+                        unit.status = 'waiting'; // Villagers can't interact with barracks directly yet
+                    } else if (unit instanceof Swordsman) {
+                        unit.targetPosition = barracks.position.clone();
+                        unit.status = 'waiting'; // Swordsmen can't interact with barracks directly yet
+                    }
+                });
+                selectedUnits = [barracks]; // Select the barracks
             }
         }
     }
@@ -501,13 +513,28 @@ function clearSelection() {
 function updateUI() {
     if (selectedUnits.length === 1) {
         const unit = selectedUnits[0];
-        infoPanelElement.innerHTML = `
-            <div>Unit: Villager</div>
-            <div>Hitpoints: ${unit.hitpoints}</div>
-            <div>Wood: ${Math.floor(unit.wood)}</div>
-            <div>Gold: ${Math.floor(unit.gold)}</div>
-            <div>Stone: ${Math.floor(unit.stone)}</div>
-        `;
+        if (unit instanceof Villager) {
+            infoPanelElement.innerHTML = `
+                <div>Unit: Villager</div>
+                <div>Hitpoints: ${unit.hitpoints}</div>
+                <div>Wood: ${Math.floor(unit.wood)}</div>
+                <div>Gold: ${Math.floor(unit.gold)}</div>
+                <div>Stone: ${Math.floor(unit.stone)}</div>
+            `;
+        } else if (unit instanceof Swordsman) {
+            infoPanelElement.innerHTML = `
+                <div>Unit: Swordsman</div>
+                <div>Hitpoints: ${unit.hitpoints}</div>
+                <div>Attack: ${unit.attack}</div>
+                <div>Defense: ${unit.defense}</div>
+            `;
+        } else if (unit.userData.type === 'barracks') {
+            infoPanelElement.innerHTML = `
+                <div>Building: Barracks</div>
+                <div><button id="create-swordsman">Create Swordsman (60 Gold, 20 Wood)</button></div>
+            `;
+            document.getElementById('create-swordsman').onclick = () => unit.createSwordsman();
+        }
     } else if (selectedUnits.length > 1) {
         infoPanelElement.innerHTML = `<div>${selectedUnits.length} units selected</div>`;
     } else {
