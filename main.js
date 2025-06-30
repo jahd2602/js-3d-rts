@@ -116,7 +116,62 @@ class Villager extends THREE.Mesh {
                 this.targetPosition = this.target.position.clone();
                 woodCounterElement.textContent = `Wood: ${town.wood} Gold: ${town.gold} Stone: ${town.stone}`;
             }
+        } else if (this.status === 'building') {
+            if (!this.targetPosition) {
+                this.targetPosition = this.target.position.clone();
+            }
+
+            const distanceToTarget = this.position.distanceTo(this.targetPosition);
+            if (distanceToTarget > 1) {
+                const direction = this.targetPosition.clone().sub(this.position).normalize();
+                this.position.add(direction.multiplyScalar(0.1));
+            } else {
+                // Simulate building progress
+                if (!this.target.buildProgress) {
+                    this.target.buildProgress = 0;
+                }
+                this.target.buildProgress += deltaTime;
+                if (this.target.buildProgress >= 5) { // 5 seconds to build
+                    this.target.userData.built = true;
+                    this.status = 'waiting';
+                    this.targetPosition = null;
+                    console.log('Building complete!');
+                }
+            }
         } else if (this.targetPosition) {
+            const direction = this.targetPosition.clone().sub(this.position).normalize();
+            this.position.add(direction.multiplyScalar(0.1));
+
+            if (this.position.distanceTo(this.targetPosition) < 0.1) {
+                this.targetPosition = null;
+                this.status = 'waiting';
+            }
+        }
+    }
+}
+
+class Swordsman extends THREE.Mesh {
+    constructor(geometry, material, labelRenderer) {
+        super(geometry, material);
+        this.status = 'waiting';
+        this.hitpoints = 50;
+        this.attack = 10;
+        this.defense = 5;
+        this.target = null;
+        this.targetPosition = null;
+
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'label';
+        labelDiv.textContent = this.status;
+        this.statusLabel = new CSS2DObject(labelDiv);
+        this.statusLabel.position.set(0, 1.5, 0);
+        this.add(this.statusLabel);
+    }
+
+    update(deltaTime) {
+        this.statusLabel.element.textContent = this.status;
+
+        if (this.targetPosition) {
             const direction = this.targetPosition.clone().sub(this.position).normalize();
             this.position.add(direction.multiplyScalar(0.1));
 
@@ -215,6 +270,7 @@ function init() {
     window.addEventListener('mousedown', onMouseDown, false);
     window.addEventListener('mouseup', onMouseUp, false);
     window.addEventListener('contextmenu', onRightClick, false);
+    window.addEventListener('keydown', onKeyDown, false);
 }
 
 function createTownCenter() {
@@ -280,6 +336,43 @@ function createStoneMine(position) {
 
     stoneMineGroup.position.copy(position);
     return stoneMineGroup;
+}
+
+function createBarracks(position) {
+    const barracksGroup = new THREE.Group();
+
+    const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+    const baseGeometry = new THREE.BoxGeometry(8, 6, 8);
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.y = 3;
+    barracksGroup.add(base);
+
+    const roofMaterial = new THREE.MeshStandardMaterial({ color: 0xA52A2A });
+    const roofGeometry = new THREE.ConeGeometry(6, 3, 4);
+    const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+    roof.position.y = 6;
+    roof.rotation.y = Math.PI / 4;
+    barracksGroup.add(roof);
+
+    barracksGroup.position.copy(position);
+    barracksGroup.userData.type = 'barracks';
+    barracksGroup.createSwordsman = function() {
+        if (town.gold >= 60 && town.wood >= 20) { // Example costs
+            town.gold -= 60;
+            town.wood -= 20;
+            const swordsmanGeometry = new THREE.BoxGeometry(1, 1, 1);
+            const swordsmanMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff });
+            const swordsman = new Swordsman(swordsmanGeometry, swordsmanMaterial, labelRenderer);
+            swordsman.position.set(this.position.x + Math.random() * 2 - 1, 0.5, this.position.z + Math.random() * 2 - 1);
+            units.push(swordsman);
+            scene.add(swordsman);
+            woodCounterElement.textContent = `Wood: ${town.wood} Gold: ${town.gold} Stone: ${town.stone}`;
+            console.log('Swordsman created!');
+        } else {
+            console.log('Not enough resources to create Swordsman!');
+        }
+    };
+    return barracksGroup;
 }
 
 function onKeyDown(event) {
