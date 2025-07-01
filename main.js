@@ -647,24 +647,28 @@ function onRightClick(event) {
                 const tree = intersectedObject.parent;
                 selectedUnits.forEach(villager => {
                     villager.target = tree;
+                    villager.targetPosition = tree.position.clone();
                     villager.status = 'gathering_wood';
                 });
             } else if (intersectedObject.geometry.type === 'SphereGeometry') { // It's a gold mine
                 const goldMine = intersectedObject.parent;
                 selectedUnits.forEach(villager => {
                     villager.target = goldMine;
+                    villager.targetPosition = goldMine.position.clone();
                     villager.status = 'gathering_gold';
                 });
             } else if (intersectedObject.geometry.type === 'BoxGeometry') { // It's a stone mine
                 const stoneMine = intersectedObject.parent;
                 selectedUnits.forEach(villager => {
                     villager.target = stoneMine;
+                    villager.targetPosition = stoneMine.position.clone();
                     villager.status = 'gathering_stone';
                 });
             } else if (intersectedObject.parent.userData.type === 'farm') { // It's a farm
                 const farm = intersectedObject.parent;
                 selectedUnits.forEach(villager => {
                     villager.target = farm;
+                    villager.targetPosition = farm.position.clone();
                     villager.status = 'gathering_food';
                 });
             } else if (intersectedObject === ground) {
