@@ -87,6 +87,8 @@ class Villager extends THREE.Mesh {
                     this.targetPosition = townCenter.position.clone();
                     this.status = 'depositing_wood';
                 }
+            } else {
+                this.targetPosition = this.target.position.clone();
             }
         } else if (this.status === 'depositing_wood') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -109,6 +111,8 @@ class Villager extends THREE.Mesh {
                     this.targetPosition = townCenter.position.clone();
                     this.status = 'depositing_gold';
                 }
+            } else {
+                this.targetPosition = this.target.position.clone();
             }
         } else if (this.status === 'depositing_gold') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -131,6 +135,8 @@ class Villager extends THREE.Mesh {
                     this.targetPosition = townCenter.position.clone();
                     this.status = 'depositing_stone';
                 }
+            } else {
+                this.targetPosition = this.target.position.clone();
             }
         } else if (this.status === 'depositing_stone') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -153,6 +159,8 @@ class Villager extends THREE.Mesh {
                     this.targetPosition = townCenter.position.clone();
                     this.status = 'depositing_food';
                 }
+            } else {
+                this.targetPosition = this.target.position.clone();
             }
         } else if (this.status === 'depositing_food') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -167,7 +175,7 @@ class Villager extends THREE.Mesh {
                 woodDisplayElement.textContent = `🪵: ${town.wood}`;
                 goldDisplayElement.textContent = `💰: ${town.gold}`;
                 stoneDisplayElement.textContent = `🪨: ${town.stone}`;
-                foodDisplayElement.textContent = `🍞: ${town.food}`;
+                foodDisplayElement.textContent = `🥩: ${town.food}`;
             }
         }
     }
@@ -252,9 +260,12 @@ let woodDisplayElement = document.getElementById('wood-display');
 let goldDisplayElement = document.getElementById('gold-display');
 let stoneDisplayElement = document.getElementById('stone-display');
 let foodDisplayElement = document.getElementById('food-display');
+infoPanelElement.addEventListener('mouseenter', () => isMouseOverUI = true);
+infoPanelElement.addEventListener('mouseleave', () => isMouseOverUI = false);
 let startPoint = new THREE.Vector2();
 let endPoint = new THREE.Vector2();
 let isDragging = false;
+let isMouseOverUI = false;
 
 init();
 animate();
@@ -438,7 +449,7 @@ function createBarracks(position = new THREE.Vector3()) {
             woodDisplayElement.textContent = `🪵: ${town.wood}`;
             goldDisplayElement.textContent = `💰: ${town.gold}`;
             stoneDisplayElement.textContent = `🪨: ${town.stone}`;
-            foodDisplayElement.textContent = `🍞: ${town.food}`;
+            foodDisplayElement.textContent = `🥩: ${town.food}`;
             console.log('Swordsman created! ⚔️');
         } else {
             console.log('Not enough resources to create Swordsman!');
@@ -560,6 +571,7 @@ function onMouseMove(event) {
 }
 
 function onMouseDown(event) {
+    if (event.target.tagName === 'BUTTON') return;
     if (event.button === 0) { // Left mouse button
         if (buildingMode) {
             raycaster.setFromCamera(new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1), camera);
@@ -588,6 +600,7 @@ function onMouseDown(event) {
                 }
             }
         } else {
+            if (isMouseOverUI) return;
             isDragging = true;
             selectionBoxElement.style.display = 'block';
             startPoint.set(event.clientX, event.clientY);
@@ -745,7 +758,7 @@ function updateUI() {
                 <div>🪵: ${Math.floor(unit.wood)}</div>
                 <div>💰: ${Math.floor(unit.gold)}</div>
                 <div>🪨: ${Math.floor(unit.stone)}</div>
-                <div>🍞: ${Math.floor(unit.food)}</div>
+                <div>🥩: ${Math.floor(unit.food)}</div>
                 <div>
                     <button id="build-barracks">Build Barracks (B)</button>
                     <button id="build-farm">Build Farm (F)</button>
@@ -798,7 +811,7 @@ function updateUI() {
     woodDisplayElement.textContent = `🪵: ${town.wood}`;
     goldDisplayElement.textContent = `💰: ${town.gold}`;
     stoneDisplayElement.textContent = `🪨: ${town.stone}`;
-    foodDisplayElement.textContent = `🍞: ${town.food}`;
+    foodDisplayElement.textContent = `🥩: ${town.food}`;
 }
 
 function animate() {
