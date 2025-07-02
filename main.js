@@ -260,6 +260,7 @@ let woodDisplayElement = document.getElementById('wood-display');
 let goldDisplayElement = document.getElementById('gold-display');
 let stoneDisplayElement = document.getElementById('stone-display');
 let foodDisplayElement = document.getElementById('food-display');
+let borderPanCheckbox = document.getElementById('border-pan-checkbox');
 infoPanelElement.addEventListener('mouseenter', () => isMouseOverUI = true);
 infoPanelElement.addEventListener('mouseleave', () => isMouseOverUI = false);
 let startPoint = new THREE.Vector2();
@@ -719,8 +720,8 @@ function selectSingleUnit(event) {
 
     if (intersects.length > 0) {
         const intersectedObject = intersects[0].object;
-        selectedUnits.push(intersectedObject.parent); // Assuming unit is parent of mesh
-        intersectedObject.parent.material.color.set(0x0000ff);
+        selectedUnits.push(intersectedObject);
+        intersectedObject.material.color.set(0x0000ff);
     }
     updateUI();
 }
@@ -821,17 +822,19 @@ function updateUI() {
 function animate() {
     requestAnimationFrame(animate);
 
-    // Camera Pan
-    if (mouse.x < 50) {
-        camera.position.x -= panSpeed;
-    } else if (mouse.x > window.innerWidth - 50) {
-        camera.position.x += panSpeed;
-    }
+    if (borderPanCheckbox.checked) {
+        // Camera Pan
+        if (mouse.x < 50) {
+            camera.position.x -= panSpeed;
+        } else if (mouse.x > window.innerWidth - 50) {
+            camera.position.x += panSpeed;
+        }
 
-    if (mouse.y < 50) {
-        camera.position.z -= panSpeed;
-    } else if (mouse.y > window.innerHeight - 50) {
-        camera.position.z += panSpeed;
+        if (mouse.y < 50) {
+            camera.position.z -= panSpeed;
+        } else if (mouse.y > window.innerHeight - 50) {
+            camera.position.z += panSpeed;
+        }
     }
 
     updateUnits();
