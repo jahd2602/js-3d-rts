@@ -203,6 +203,7 @@ class Swordsman extends THREE.Mesh {
         this.defense = 5;
         this.target = null;
         this.targetPosition = null;
+        this.speed = 2;
         this.attackCooldown = 1; // seconds
         this.lastAttackTime = 0;
 
@@ -227,7 +228,7 @@ class Swordsman extends THREE.Mesh {
                 const distanceToTarget = this.position.distanceTo(this.target.position);
                 if (distanceToTarget > 2) { // Move closer to attack
                     const direction = this.target.position.clone().sub(this.position).normalize();
-                    this.position.add(direction.multiplyScalar(0.1));
+                    this.position.add(direction.multiplyScalar(this.speed * deltaTime));
                 } else {
                     if (performance.now() / 1000 - this.lastAttackTime > this.attackCooldown) {
                         let damage = this.attack;
@@ -257,7 +258,7 @@ class Swordsman extends THREE.Mesh {
             }
         } else if (this.targetPosition) {
             const direction = this.targetPosition.clone().sub(this.position).normalize();
-            this.position.add(direction.multiplyScalar(0.1));
+            this.position.add(direction.multiplyScalar(this.speed * deltaTime));
 
             if (this.position.distanceTo(this.targetPosition) < 0.1) {
                 this.targetPosition = null;
