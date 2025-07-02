@@ -76,13 +76,13 @@ class Villager extends THREE.Mesh {
                     }
                 } else {
                     if (this.target) {
-                        if (this.target.geometry.type === 'CylinderGeometry') {
+                        if (this.target.parent.userData.type === 'tree') {
                             this.status = 'gathering_wood';
-                        } else if (this.target.geometry.type === 'SphereGeometry') {
+                        } else if (this.target.parent.userData.type === 'goldMine') {
                             this.status = 'gathering_gold';
-                        } else if (this.target.geometry.type === 'BoxGeometry') {
+                        } else if (this.target.parent.userData.type === 'stoneMine') {
                             this.status = 'gathering_stone';
-                        } else if (this.target.parent && this.target.parent.userData.type === 'farm') {
+                        } else if (this.target.parent.userData.type === 'farm') {
                             this.status = 'gathering_food';
                         }
                     } else {
@@ -402,6 +402,7 @@ function createTree(position) {
     treeGroup.add(leaves);
 
     treeGroup.position.copy(position);
+    treeGroup.userData.type = 'tree';
     return treeGroup;
 }
 
@@ -415,6 +416,7 @@ function createGoldMine(position) {
     goldMineGroup.add(base);
 
     goldMineGroup.position.copy(position);
+    goldMineGroup.userData.type = 'goldMine';
     return goldMineGroup;
 }
 
@@ -428,6 +430,7 @@ function createStoneMine(position) {
     stoneMineGroup.add(base);
 
     stoneMineGroup.position.copy(position);
+    stoneMineGroup.userData.type = 'stoneMine';
     return stoneMineGroup;
 }
 
