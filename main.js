@@ -23,6 +23,7 @@ class Villager extends THREE.Mesh {
         this.food = 0;
         this.target = null;
         this.targetPosition = null;
+        this.speed = 2;
 
         const labelDiv = document.createElement('div');
         labelDiv.className = 'label';
@@ -52,7 +53,7 @@ class Villager extends THREE.Mesh {
             const distanceToTarget = this.position.distanceTo(this.targetPosition);
             if (distanceToTarget > 0.1) {
                 const direction = this.targetPosition.clone().sub(this.position).normalize();
-                this.position.add(direction.multiplyScalar(0.1));
+                this.position.add(direction.multiplyScalar(this.speed * deltaTime));
             } else {
                 this.targetPosition = null;
                 if (this.status === 'building') {
@@ -106,7 +107,7 @@ class Villager extends THREE.Mesh {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
             if (distanceToTownCenter > 2) {
                 const direction = townCenter.position.clone().sub(this.position).normalize();
-                this.position.add(direction.multiplyScalar(0.1));
+                this.position.add(direction.multiplyScalar(this.speed * deltaTime));
             } else {
                 town.wood += Math.floor(this.wood);
                 this.wood = 0;
@@ -130,7 +131,7 @@ class Villager extends THREE.Mesh {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
             if (distanceToTownCenter > 2) {
                 const direction = townCenter.position.clone().sub(this.position).normalize();
-                this.position.add(direction.multiplyScalar(0.1));
+                this.position.add(direction.multiplyScalar(this.speed * deltaTime));
             } else {
                 town.gold += Math.floor(this.gold);
                 this.gold = 0;
@@ -154,7 +155,7 @@ class Villager extends THREE.Mesh {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
             if (distanceToTownCenter > 2) {
                 const direction = townCenter.position.clone().sub(this.position).normalize();
-                this.position.add(direction.multiplyScalar(0.1));
+                this.position.add(direction.multiplyScalar(this.speed * deltaTime));
             } else {
                 town.stone += Math.floor(this.stone);
                 this.stone = 0;
@@ -178,7 +179,7 @@ class Villager extends THREE.Mesh {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
             if (distanceToTownCenter > 2) {
                 const direction = townCenter.position.clone().sub(this.position).normalize();
-                this.position.add(direction.multiplyScalar(0.1));
+                this.position.add(direction.multiplyScalar(this.speed * deltaTime));
             } else {
                 town.food += Math.floor(this.food);
                 this.food = 0;
