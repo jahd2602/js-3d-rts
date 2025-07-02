@@ -75,7 +75,19 @@ class Villager extends THREE.Mesh {
                         }
                     }
                 } else {
-                    this.status = 'waiting';
+                    if (this.target) {
+                        if (this.target.geometry.type === 'CylinderGeometry') {
+                            this.status = 'gathering_wood';
+                        } else if (this.target.geometry.type === 'SphereGeometry') {
+                            this.status = 'gathering_gold';
+                        } else if (this.target.geometry.type === 'BoxGeometry') {
+                            this.status = 'gathering_stone';
+                        } else if (this.target.parent && this.target.parent.userData.type === 'farm') {
+                            this.status = 'gathering_food';
+                        }
+                    } else {
+                        this.status = 'waiting';
+                    }
                 }
             }
         }
