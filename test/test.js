@@ -1,8 +1,24 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
+const { exec } = require('child_process');
+
+let serverProcess;
 
 (async () => {
-  const browser = await puppeteer.launch({ executablePath: '/Users/jairoh/vscodeprojects/gclitest/test/chrome/mac_arm-138.0.7204.92/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing' });
+  // Start the http-server
+  serverProcess = exec('npx http-server ../ -p 8080', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`http-server error: ${error}`);
+      return;
+    }
+    console.log(`http-server stdout: ${stdout}`);
+    console.error(`http-server stderr: ${stderr}`);
+  });
+
+  // Wait for the server to start (give it a moment)
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' });
   const page = await browser.newPage();
   
   page.on('console', msg => {
@@ -12,7 +28,12 @@ const path = require('path');
     }
   });
 
-  await page.goto(`file://${path.join(__dirname, '..', 'index.html')}`);
+  await page.goto('http://localhost:8080');
   
   await browser.close();
+
+  // Stop the http-server
+  if (serverProcess) {
+    serverProcess.kill();
+  }
 })();
