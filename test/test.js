@@ -36,4 +36,6 @@ let serverProcess;
   if (serverProcess) {
     serverProcess.kill();
   }
+
+  console.log('No console errors found.');
 })();
