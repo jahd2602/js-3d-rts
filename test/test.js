@@ -30,6 +30,8 @@ let serverProcess;
 
   await page.goto('http://localhost:8080');
   
+  await page.screenshot({ path: 'screenshot.png' });
+
   await browser.close();
 
   // Stop the http-server
