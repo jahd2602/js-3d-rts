@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { Pathfinding } from 'pathfinding';
+
 
 let scene, camera, renderer, labelRenderer;
 let ground, townCenter;
@@ -13,7 +13,7 @@ const raycaster = new THREE.Raycaster();
 const panSpeed = 0.1;
 let town = { wood: 0, gold: 0, stone: 0, food: 0, currentAge: 1, researchedTechnologies: { swordsmanAttack: false } };
 const gridSize = 100;
-const grid = new Pathfinding.Grid(gridSize, gridSize);
+const grid = new PF.Grid(gridSize, gridSize);
 
 class Villager extends THREE.Mesh {
     constructor(geometry, material, labelRenderer) {
@@ -688,7 +688,7 @@ function onRightClick(event) {
             buildingMode = null; // Exit building mode after placement
         } else {
             const intersectedObject = intersects[0].object;
-            const finder = new Pathfinding.AStarFinder();
+            const finder = new PF.AStarFinder();
             const gridClone = grid.clone();
             if (intersectedObject.geometry.type === 'CylinderGeometry') { // It's a tree trunk
                 const tree = intersectedObject.parent;
