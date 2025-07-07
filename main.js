@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { Pathfinding } from 'pathfinding';
 
 let scene, camera, renderer, labelRenderer;
 let ground, townCenter;
@@ -11,6 +12,8 @@ const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 const panSpeed = 0.1;
 let town = { wood: 0, gold: 0, stone: 0, food: 0, currentAge: 1, researchedTechnologies: { swordsmanAttack: false } };
+const gridSize = 100;
+const grid = new Pathfinding.Grid(gridSize, gridSize);
 
 class Villager extends THREE.Mesh {
     constructor(geometry, material, labelRenderer) {
@@ -23,6 +26,7 @@ class Villager extends THREE.Mesh {
         this.food = 0;
         this.target = null;
         this.targetPosition = null;
+        this.path = [];
         this.speed = 2;
 
         const labelDiv = document.createElement('div');
@@ -49,45 +53,50 @@ class Villager extends THREE.Mesh {
         };
         this.statusLabel.element.textContent = statusEmojis[this.status] || this.status;
 
-        if (this.targetPosition) {
-            const distanceToTarget = this.position.distanceTo(this.targetPosition);
+        if (this.path.length > 0) {
+            const targetNode = this.path[0];
+            const targetPosition = new THREE.Vector3(targetNode[0] - gridSize / 2, 0.5, targetNode[1] - gridSize / 2);
+            const distanceToTarget = this.position.distanceTo(targetPosition);
+
             if (distanceToTarget > 0.1) {
-                const direction = this.targetPosition.clone().sub(this.position).normalize();
+                const direction = targetPosition.clone().sub(this.position).normalize();
                 this.position.add(direction.multiplyScalar(this.speed * deltaTime));
             } else {
-                this.targetPosition = null;
-                if (this.status === 'building') {
-                    // Simulate building progress
-                    if (!this.target.buildProgress) {
-                        this.target.buildProgress = 0;
-                    }
-                    this.target.buildProgress += deltaTime;
-                    if (this.target.buildProgress >= 5) { // 5 seconds to build
-                        this.target.userData.built = true;
-                        this.target.children[0].material.opacity = 1; // Make base opaque
-                        this.target.children[1].material.opacity = 1; // Make roof opaque
-                        this.status = 'waiting';
-                        this.targetPosition = null;
-                        console.log('Building complete!');
-                        if (this.target.userData.buildingType === 'farm') {
-                            this.status = 'gathering_food';
-                            this.target = this.target; // Set target to the newly built farm
-                            this.targetPosition = this.target.position.clone();
+                this.path.shift();
+                if (this.path.length === 0) {
+                    if (this.status === 'building') {
+                        // Simulate building progress
+                        if (!this.target.buildProgress) {
+                            this.target.buildProgress = 0;
                         }
-                    }
-                } else {
-                    if (this.target) {
-                        if (this.target.parent.userData.type === 'tree') {
-                            this.status = 'gathering_wood';
-                        } else if (this.target.parent.userData.type === 'goldMine') {
-                            this.status = 'gathering_gold';
-                        } else if (this.target.parent.userData.type === 'stoneMine') {
-                            this.status = 'gathering_stone';
-                        } else if (this.target.parent.userData.type === 'farm') {
-                            this.status = 'gathering_food';
+                        this.target.buildProgress += deltaTime;
+                        if (this.target.buildProgress >= 5) { // 5 seconds to build
+                            this.target.userData.built = true;
+                            this.target.children[0].material.opacity = 1; // Make base opaque
+                            this.target.children[1].material.opacity = 1; // Make roof opaque
+                            this.status = 'waiting';
+                            this.targetPosition = null;
+                            console.log('Building complete!');
+                            if (this.target.userData.buildingType === 'farm') {
+                                this.status = 'gathering_food';
+                                this.target = this.target; // Set target to the newly built farm
+                                this.targetPosition = this.target.position.clone();
+                            }
                         }
                     } else {
-                        this.status = 'waiting';
+                        if (this.target) {
+                            if (this.target.parent.userData.type === 'tree') {
+                                this.status = 'gathering_wood';
+                            } else if (this.target.parent.userData.type === 'goldMine') {
+                                this.status = 'gathering_gold';
+                            } else if (this.target.parent.userData.type === 'stoneMine') {
+                                this.status = 'gathering_stone';
+                            } else if (this.target.parent.userData.type === 'farm') {
+                                this.status = 'gathering_food';
+                            }
+                        } else {
+                            this.status = 'waiting';
+                        }
                     }
                 }
             }
@@ -385,6 +394,9 @@ function createTownCenter() {
 
     townCenterGroup.position.set(0, 0, 0);
     townCenterGroup.hitpoints = 500; // Town Center HP
+    const x = Math.floor(townCenterGroup.position.x + gridSize / 2);
+    const y = Math.floor(townCenterGroup.position.z + gridSize / 2);
+    grid.setWalkableAt(x, y, false);
     return townCenterGroup;
 }
 
@@ -405,6 +417,9 @@ function createTree(position) {
 
     treeGroup.position.copy(position);
     treeGroup.userData.type = 'tree';
+    const x = Math.floor(treeGroup.position.x + gridSize / 2);
+    const y = Math.floor(treeGroup.position.z + gridSize / 2);
+    grid.setWalkableAt(x, y, false);
     return treeGroup;
 }
 
@@ -419,6 +434,9 @@ function createGoldMine(position) {
 
     goldMineGroup.position.copy(position);
     goldMineGroup.userData.type = 'goldMine';
+    const x = Math.floor(goldMineGroup.position.x + gridSize / 2);
+    const y = Math.floor(goldMineGroup.position.z + gridSize / 2);
+    grid.setWalkableAt(x, y, false);
     return goldMineGroup;
 }
 
@@ -433,6 +451,9 @@ function createStoneMine(position) {
 
     stoneMineGroup.position.copy(position);
     stoneMineGroup.userData.type = 'stoneMine';
+    const x = Math.floor(stoneMineGroup.position.x + gridSize / 2);
+    const y = Math.floor(stoneMineGroup.position.z + gridSize / 2);
+    grid.setWalkableAt(x, y, false);
     return stoneMineGroup;
 }
 
@@ -454,6 +475,9 @@ function createBarracks(position = new THREE.Vector3()) {
 
     barracksGroup.position.copy(position);
     barracksGroup.userData.type = 'barracks';
+    const x = Math.floor(barracksGroup.position.x + gridSize / 2);
+    const y = Math.floor(barracksGroup.position.z + gridSize / 2);
+    grid.setWalkableAt(x, y, false);
     barracksGroup.createSwordsman = function() {
         if (town.gold >= 60 && town.wood >= 20) { // Example costs
             town.gold -= 60;
@@ -494,6 +518,9 @@ function createFarm(position = new THREE.Vector3()) {
 
     farmGroup.position.copy(position);
     farmGroup.userData.type = 'farm';
+    const x = Math.floor(farmGroup.position.x + gridSize / 2);
+    const y = Math.floor(farmGroup.position.z + gridSize / 2);
+    grid.setWalkableAt(x, y, false);
     return farmGroup;
 }
 
@@ -661,43 +688,76 @@ function onRightClick(event) {
             buildingMode = null; // Exit building mode after placement
         } else {
             const intersectedObject = intersects[0].object;
+            const finder = new Pathfinding.AStarFinder();
+            const gridClone = grid.clone();
             if (intersectedObject.geometry.type === 'CylinderGeometry') { // It's a tree trunk
                 const tree = intersectedObject.parent;
                 selectedUnits.forEach(villager => {
+                    const startX = Math.floor(villager.position.x + gridSize / 2);
+                    const startY = Math.floor(villager.position.z + gridSize / 2);
+                    const endX = Math.floor(tree.position.x + gridSize / 2);
+                    const endY = Math.floor(tree.position.z + gridSize / 2);
+                    const path = finder.findPath(startX, startY, endX, endY, gridClone);
+                    villager.path = path;
                     villager.target = tree;
-                    villager.targetPosition = tree.position.clone();
-                    villager.status = 'gathering_wood';
+                    villager.status = 'walking';
                 });
             } else if (intersectedObject.geometry.type === 'SphereGeometry') { // It's a gold mine
                 const goldMine = intersectedObject.parent;
                 selectedUnits.forEach(villager => {
+                    const startX = Math.floor(villager.position.x + gridSize / 2);
+                    const startY = Math.floor(villager.position.z + gridSize / 2);
+                    const endX = Math.floor(goldMine.position.x + gridSize / 2);
+                    const endY = Math.floor(goldMine.position.z + gridSize / 2);
+                    const path = finder.findPath(startX, startY, endX, endY, gridClone);
+                    villager.path = path;
                     villager.target = goldMine;
-                    villager.targetPosition = goldMine.position.clone();
-                    villager.status = 'gathering_gold';
+                    villager.status = 'walking';
                 });
             } else if (intersectedObject.geometry.type === 'BoxGeometry') { // It's a stone mine
                 const stoneMine = intersectedObject.parent;
                 selectedUnits.forEach(villager => {
+                    const startX = Math.floor(villager.position.x + gridSize / 2);
+                    const startY = Math.floor(villager.position.z + gridSize / 2);
+                    const endX = Math.floor(stoneMine.position.x + gridSize / 2);
+                    const endY = Math.floor(stoneMine.position.z + gridSize / 2);
+                    const path = finder.findPath(startX, startY, endX, endY, gridClone);
+                    villager.path = path;
                     villager.target = stoneMine;
-                    villager.targetPosition = stoneMine.position.clone();
-                    villager.status = 'gathering_stone';
+                    villager.status = 'walking';
                 });
             } else if (intersectedObject.parent.userData.type === 'farm') { // It's a farm
                 const farm = intersectedObject.parent;
                 selectedUnits.forEach(villager => {
+                    const startX = Math.floor(villager.position.x + gridSize / 2);
+                    const startY = Math.floor(villager.position.z + gridSize / 2);
+                    const endX = Math.floor(farm.position.x + gridSize / 2);
+                    const endY = Math.floor(farm.position.z + gridSize / 2);
+                    const path = finder.findPath(startX, startY, endX, endY, gridClone);
+                    villager.path = path;
                     villager.target = farm;
-                    villager.targetPosition = farm.position.clone();
-                    villager.status = 'gathering_food';
+                    villager.status = 'walking';
                 });
             } else if (intersectedObject === ground) {
                 const targetPosition = intersects[0].point;
                 selectedUnits.forEach(unit => {
-                    unit.targetPosition = targetPosition;
+                    const startX = Math.floor(unit.position.x + gridSize / 2);
+                    const startY = Math.floor(unit.position.z + gridSize / 2);
+                    const endX = Math.floor(targetPosition.x + gridSize / 2);
+                    const endY = Math.floor(targetPosition.z + gridSize / 2);
+                    const path = finder.findPath(startX, startY, endX, endY, gridClone);
+                    unit.path = path;
                     unit.status = 'walking';
                 });
             } else if (intersectedObject.parent.userData.type === 'building_site') {
                 const buildingSite = intersectedObject.parent;
                 selectedUnits.forEach(villager => {
+                    const startX = Math.floor(villager.position.x + gridSize / 2);
+                    const startY = Math.floor(villager.position.z + gridSize / 2);
+                    const endX = Math.floor(buildingSite.position.x + gridSize / 2);
+                    const endY = Math.floor(buildingSite.position.z + gridSize / 2);
+                    const path = finder.findPath(startX, startY, endX, endY, gridClone);
+                    villager.path = path;
                     villager.target = buildingSite;
                     villager.status = 'building';
                 });
@@ -705,11 +765,21 @@ function onRightClick(event) {
                 const barracks = intersectedObject.parent;
                 selectedUnits.forEach(unit => {
                     if (unit instanceof Villager) {
-                        unit.targetPosition = barracks.position.clone();
-                        unit.status = 'waiting'; // Villagers can't interact with barracks directly yet
+                        const startX = Math.floor(unit.position.x + gridSize / 2);
+                        const startY = Math.floor(unit.position.z + gridSize / 2);
+                        const endX = Math.floor(barracks.position.x + gridSize / 2);
+                        const endY = Math.floor(barracks.position.z + gridSize / 2);
+                        const path = finder.findPath(startX, startY, endX, endY, gridClone);
+                        unit.path = path;
+                        unit.status = 'walking'; // Villagers can't interact with barracks directly yet
                     } else if (unit instanceof Swordsman) {
-                        unit.targetPosition = barracks.position.clone();
-                        unit.status = 'waiting'; // Swordsmen can't interact with barracks directly yet
+                        const startX = Math.floor(unit.position.x + gridSize / 2);
+                        const startY = Math.floor(unit.position.z + gridSize / 2);
+                        const endX = Math.floor(barracks.position.x + gridSize / 2);
+                        const endY = Math.floor(barracks.position.z + gridSize / 2);
+                        const path = finder.findPath(startX, startY, endX, endY, gridClone);
+                        unit.path = path;
+                        unit.status = 'walking'; // Swordsmen can't interact with barracks directly yet
                     }
                 });
                 selectedUnits = [barracks]; // Select the barracks
@@ -717,10 +787,21 @@ function onRightClick(event) {
                 const targetUnit = intersectedObject.parent;
                 selectedUnits.forEach(unit => {
                     if (unit instanceof Swordsman) {
+                        const startX = Math.floor(unit.position.x + gridSize / 2);
+                        const startY = Math.floor(unit.position.z + gridSize / 2);
+                        const endX = Math.floor(targetUnit.position.x + gridSize / 2);
+                        const endY = Math.floor(targetUnit.position.z + gridSize / 2);
+                        const path = finder.findPath(startX, startY, endX, endY, gridClone);
+                        unit.path = path;
                         unit.target = targetUnit;
                         unit.status = 'attacking';
                     } else {
-                        unit.targetPosition = targetUnit.position.clone();
+                        const startX = Math.floor(unit.position.x + gridSize / 2);
+                        const startY = Math.floor(unit.position.z + gridSize / 2);
+                        const endX = Math.floor(targetUnit.position.x + gridSize / 2);
+                        const endY = Math.floor(targetUnit.position.z + gridSize / 2);
+                        const path = finder.findPath(startX, startY, endX, endY, gridClone);
+                        unit.path = path;
                         unit.status = 'walking';
                     }
                 });
