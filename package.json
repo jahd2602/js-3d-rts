@@ -1,8 +1,0 @@
-{
-  "scripts": {
-    "test": "node test/test.js"
-  },
-  "devDependencies": {
-    "puppeteer": "^22.10.0"
-  }
-}
