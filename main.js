@@ -740,11 +740,20 @@ function onRightClick(event) {
                 });
             } else if (intersectedObject === ground) {
                 const targetPosition = intersects[0].point;
-                selectedUnits.forEach(unit => {
+                const numUnits = selectedUnits.length;
+                const angleStep = (Math.PI * 2) / numUnits;
+                const radius = 3; // Distance from the center point
+
+                selectedUnits.forEach((unit, index) => {
+                    const angle = index * angleStep;
+                    const offsetX = radius * Math.cos(angle);
+                    const offsetY = radius * Math.sin(angle);
+                    const individualTargetPosition = new THREE.Vector3(targetPosition.x + offsetX, targetPosition.y, targetPosition.z + offsetY);
+
                     const startX = Math.floor(unit.position.x + gridSize / 2);
                     const startY = Math.floor(unit.position.z + gridSize / 2);
-                    const endX = Math.floor(targetPosition.x + gridSize / 2);
-                    const endY = Math.floor(targetPosition.z + gridSize / 2);
+                    const endX = Math.floor(individualTargetPosition.x + gridSize / 2);
+                    const endY = Math.floor(individualTargetPosition.z + gridSize / 2);
                     const path = finder.findPath(startX, startY, endX, endY, gridClone);
                     unit.path = path;
                     unit.status = 'walking';
