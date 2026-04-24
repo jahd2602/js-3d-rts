@@ -15,6 +15,27 @@ let town = { wood: 0, gold: 0, stone: 0, food: 0, currentAge: 1, researchedTechn
 const gridSize = 100;
 const grid = new PF.Grid(gridSize, gridSize);
 
+function createFlag() {
+    const flagGroup = new THREE.Group();
+    
+    // Pole
+    const poleGeometry = new THREE.CylinderGeometry(0.05, 0.05, 2);
+    const poleMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+    pole.position.y = 1;
+    flagGroup.add(pole);
+    
+    // Triangle
+    const triangleGeometry = new THREE.ConeGeometry(0.5, 0.8, 3);
+    const triangleMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const triangle = new THREE.Mesh(triangleGeometry, triangleMaterial);
+    triangle.position.set(0.3, 1.6, 0);
+    triangle.rotation.z = Math.PI / 2;
+    flagGroup.add(triangle);
+    
+    return flagGroup;
+}
+
 class Villager extends THREE.Mesh {
     constructor(geometry, material, labelRenderer) {
         super(geometry, material);
@@ -28,6 +49,7 @@ class Villager extends THREE.Mesh {
         this.targetPosition = null;
         this.path = [];
         this.speed = 2;
+        this.moveFlag = null;
 
         const labelDiv = document.createElement('div');
         labelDiv.className = 'label';
@@ -64,6 +86,10 @@ class Villager extends THREE.Mesh {
             } else {
                 this.path.shift();
                 if (this.path.length === 0) {
+                    if (this.moveFlag) {
+                        scene.remove(this.moveFlag);
+                        this.moveFlag = null;
+                    }
                     if (this.status === 'building') {
                         // Simulate building progress
                         if (!this.target.buildProgress) {
@@ -85,13 +111,13 @@ class Villager extends THREE.Mesh {
                         }
                     } else {
                         if (this.target) {
-                            if (this.target.parent.userData.type === 'tree') {
+                            if (this.target.userData.type === 'tree') {
                                 this.status = 'gathering_wood';
-                            } else if (this.target.parent.userData.type === 'goldMine') {
+                            } else if (this.target.userData.type === 'goldMine') {
                                 this.status = 'gathering_gold';
-                            } else if (this.target.parent.userData.type === 'stoneMine') {
+                            } else if (this.target.userData.type === 'stoneMine') {
                                 this.status = 'gathering_stone';
-                            } else if (this.target.parent.userData.type === 'farm') {
+                            } else if (this.target.userData.type === 'farm') {
                                 this.status = 'gathering_food';
                             }
                         } else {
@@ -110,7 +136,8 @@ class Villager extends THREE.Mesh {
                     this.status = 'depositing_wood';
                 }
             } else {
-                this.targetPosition = this.target.position.clone();
+                const direction = this.target.position.clone().sub(this.position).normalize();
+                this.position.add(direction.multiplyScalar(this.speed * deltaTime));
             }
         } else if (this.status === 'depositing_wood') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -134,7 +161,8 @@ class Villager extends THREE.Mesh {
                     this.status = 'depositing_gold';
                 }
             } else {
-                this.targetPosition = this.target.position.clone();
+                const direction = this.target.position.clone().sub(this.position).normalize();
+                this.position.add(direction.multiplyScalar(this.speed * deltaTime));
             }
         } else if (this.status === 'depositing_gold') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -158,7 +186,8 @@ class Villager extends THREE.Mesh {
                     this.status = 'depositing_stone';
                 }
             } else {
-                this.targetPosition = this.target.position.clone();
+                const direction = this.target.position.clone().sub(this.position).normalize();
+                this.position.add(direction.multiplyScalar(this.speed * deltaTime));
             }
         } else if (this.status === 'depositing_stone') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -182,7 +211,8 @@ class Villager extends THREE.Mesh {
                     this.status = 'depositing_food';
                 }
             } else {
-                this.targetPosition = this.target.position.clone();
+                const direction = this.target.position.clone().sub(this.position).normalize();
+                this.position.add(direction.multiplyScalar(this.speed * deltaTime));
             }
         } else if (this.status === 'depositing_food') {
             const distanceToTownCenter = this.position.distanceTo(townCenter.position);
@@ -332,6 +362,13 @@ function init() {
     ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;
     scene.add(ground);
+
+    // Visual Grid
+    const gridHelper = new THREE.GridHelper(100, 100, 0x000000, 0x000000);
+    gridHelper.position.y = 0.01; // Slightly above ground to prevent z-fighting
+    gridHelper.material.transparent = true;
+    gridHelper.material.opacity = 0.2;
+    scene.add(gridHelper);
 
     // Town Center
     townCenter = createTownCenter();
@@ -688,7 +725,10 @@ function onRightClick(event) {
             buildingMode = null; // Exit building mode after placement
         } else {
             const intersectedObject = intersects[0].object;
-            const finder = new PF.AStarFinder();
+            const finder = new PF.AStarFinder({
+                allowDiagonal: true,
+                dontCrossCorners: true
+            });
             const gridClone = grid.clone();
             if (intersectedObject.geometry.type === 'CylinderGeometry') { // It's a tree trunk
                 const tree = intersectedObject.parent;
@@ -697,6 +737,7 @@ function onRightClick(event) {
                     const startY = Math.floor(villager.position.z + gridSize / 2);
                     const endX = Math.floor(tree.position.x + gridSize / 2);
                     const endY = Math.floor(tree.position.z + gridSize / 2);
+                    gridClone.setWalkableAt(endX, endY, true); // Allow pathing to the resource itself
                     const path = finder.findPath(startX, startY, endX, endY, gridClone);
                     villager.path = path;
                     villager.target = tree;
@@ -709,6 +750,7 @@ function onRightClick(event) {
                     const startY = Math.floor(villager.position.z + gridSize / 2);
                     const endX = Math.floor(goldMine.position.x + gridSize / 2);
                     const endY = Math.floor(goldMine.position.z + gridSize / 2);
+                    gridClone.setWalkableAt(endX, endY, true);
                     const path = finder.findPath(startX, startY, endX, endY, gridClone);
                     villager.path = path;
                     villager.target = goldMine;
@@ -721,6 +763,7 @@ function onRightClick(event) {
                     const startY = Math.floor(villager.position.z + gridSize / 2);
                     const endX = Math.floor(stoneMine.position.x + gridSize / 2);
                     const endY = Math.floor(stoneMine.position.z + gridSize / 2);
+                    gridClone.setWalkableAt(endX, endY, true);
                     const path = finder.findPath(startX, startY, endX, endY, gridClone);
                     villager.path = path;
                     villager.target = stoneMine;
@@ -733,6 +776,7 @@ function onRightClick(event) {
                     const startY = Math.floor(villager.position.z + gridSize / 2);
                     const endX = Math.floor(farm.position.x + gridSize / 2);
                     const endY = Math.floor(farm.position.z + gridSize / 2);
+                    gridClone.setWalkableAt(endX, endY, true);
                     const path = finder.findPath(startX, startY, endX, endY, gridClone);
                     villager.path = path;
                     villager.target = farm;
@@ -741,13 +785,17 @@ function onRightClick(event) {
             } else if (intersectedObject === ground) {
                 const targetPosition = intersects[0].point;
                 const numUnits = selectedUnits.length;
-                const angleStep = (Math.PI * 2) / numUnits;
-                const radius = 3; // Distance from the center point
 
                 selectedUnits.forEach((unit, index) => {
-                    const angle = index * angleStep;
-                    const offsetX = radius * Math.cos(angle);
-                    const offsetY = radius * Math.sin(angle);
+                    let offsetX = 0;
+                    let offsetY = 0;
+                    if (numUnits > 1) {
+                        const angleStep = (Math.PI * 2) / numUnits;
+                        const radius = 3; // Distance from the center point
+                        const angle = index * angleStep;
+                        offsetX = radius * Math.cos(angle);
+                        offsetY = radius * Math.sin(angle);
+                    }
                     const individualTargetPosition = new THREE.Vector3(targetPosition.x + offsetX, targetPosition.y, targetPosition.z + offsetY);
 
                     const startX = Math.floor(unit.position.x + gridSize / 2);
@@ -757,6 +805,13 @@ function onRightClick(event) {
                     const path = finder.findPath(startX, startY, endX, endY, gridClone);
                     unit.path = path;
                     unit.status = 'walking';
+
+                    if (unit instanceof Villager) {
+                        if (unit.moveFlag) scene.remove(unit.moveFlag);
+                        unit.moveFlag = createFlag();
+                        unit.moveFlag.position.copy(individualTargetPosition);
+                        scene.add(unit.moveFlag);
+                    }
                 });
             } else if (intersectedObject.parent.userData.type === 'building_site') {
                 const buildingSite = intersectedObject.parent;
@@ -769,49 +824,55 @@ function onRightClick(event) {
                     villager.path = path;
                     villager.target = buildingSite;
                     villager.status = 'building';
+
+                    if (villager instanceof Villager) {
+                        if (villager.moveFlag) scene.remove(villager.moveFlag);
+                        villager.moveFlag = createFlag();
+                        villager.moveFlag.position.copy(buildingSite.position);
+                        scene.add(villager.moveFlag);
+                    }
                 });
             } else if (intersectedObject.parent.userData.type === 'barracks') {
                 const barracks = intersectedObject.parent;
                 selectedUnits.forEach(unit => {
+                    const startX = Math.floor(unit.position.x + gridSize / 2);
+                    const startY = Math.floor(unit.position.z + gridSize / 2);
+                    const endX = Math.floor(barracks.position.x + gridSize / 2);
+                    const endY = Math.floor(barracks.position.z + gridSize / 2);
+                    const path = finder.findPath(startX, startY, endX, endY, gridClone);
+                    unit.path = path;
+                    unit.status = 'walking';
+
                     if (unit instanceof Villager) {
-                        const startX = Math.floor(unit.position.x + gridSize / 2);
-                        const startY = Math.floor(unit.position.z + gridSize / 2);
-                        const endX = Math.floor(barracks.position.x + gridSize / 2);
-                        const endY = Math.floor(barracks.position.z + gridSize / 2);
-                        const path = finder.findPath(startX, startY, endX, endY, gridClone);
-                        unit.path = path;
-                        unit.status = 'walking'; // Villagers can't interact with barracks directly yet
-                    } else if (unit instanceof Swordsman) {
-                        const startX = Math.floor(unit.position.x + gridSize / 2);
-                        const startY = Math.floor(unit.position.z + gridSize / 2);
-                        const endX = Math.floor(barracks.position.x + gridSize / 2);
-                        const endY = Math.floor(barracks.position.z + gridSize / 2);
-                        const path = finder.findPath(startX, startY, endX, endY, gridClone);
-                        unit.path = path;
-                        unit.status = 'walking'; // Swordsmen can't interact with barracks directly yet
+                        if (unit.moveFlag) scene.remove(unit.moveFlag);
+                        unit.moveFlag = createFlag();
+                        unit.moveFlag.position.copy(barracks.position);
+                        scene.add(unit.moveFlag);
                     }
                 });
                 selectedUnits = [barracks]; // Select the barracks
             } else if (units.includes(intersectedObject.parent)) { // Check if the intersected object is a unit
                 const targetUnit = intersectedObject.parent;
                 selectedUnits.forEach(unit => {
+                    const startX = Math.floor(unit.position.x + gridSize / 2);
+                    const startY = Math.floor(unit.position.z + gridSize / 2);
+                    const endX = Math.floor(targetUnit.position.x + gridSize / 2);
+                    const endY = Math.floor(targetUnit.position.z + gridSize / 2);
+                    const path = finder.findPath(startX, startY, endX, endY, gridClone);
+                    unit.path = path;
+
                     if (unit instanceof Swordsman) {
-                        const startX = Math.floor(unit.position.x + gridSize / 2);
-                        const startY = Math.floor(unit.position.z + gridSize / 2);
-                        const endX = Math.floor(targetUnit.position.x + gridSize / 2);
-                        const endY = Math.floor(targetUnit.position.z + gridSize / 2);
-                        const path = finder.findPath(startX, startY, endX, endY, gridClone);
-                        unit.path = path;
                         unit.target = targetUnit;
                         unit.status = 'attacking';
                     } else {
-                        const startX = Math.floor(unit.position.x + gridSize / 2);
-                        const startY = Math.floor(unit.position.z + gridSize / 2);
-                        const endX = Math.floor(targetUnit.position.x + gridSize / 2);
-                        const endY = Math.floor(targetUnit.position.z + gridSize / 2);
-                        const path = finder.findPath(startX, startY, endX, endY, gridClone);
-                        unit.path = path;
                         unit.status = 'walking';
+                    }
+
+                    if (unit instanceof Villager) {
+                        if (unit.moveFlag) scene.remove(unit.moveFlag);
+                        unit.moveFlag = createFlag();
+                        unit.moveFlag.position.copy(targetUnit.position);
+                        scene.add(unit.moveFlag);
                     }
                 });
             }
@@ -829,6 +890,7 @@ function selectSingleUnit(event) {
         const intersectedObject = intersects[0].object;
         selectedUnits.push(intersectedObject);
         intersectedObject.material.color.set(0x0000ff);
+        if (intersectedObject.moveFlag) intersectedObject.moveFlag.visible = true;
     }
     updateUI();
 }
@@ -847,6 +909,7 @@ function selectUnits() {
         if (selectionBox.containsPoint(screenCoords)) {
             selectedUnits.push(unit);
             unit.material.color.set(0x0000ff);
+            if (unit.moveFlag) unit.moveFlag.visible = true;
         }
     });
     updateUI();
@@ -854,7 +917,8 @@ function selectUnits() {
 
 function clearSelection() {
     selectedUnits.forEach(unit => {
-        unit.material.color.set(0xff0000);
+        if (unit instanceof THREE.Mesh) unit.material.color.set(0xff0000);
+        if (unit.moveFlag) unit.moveFlag.visible = false;
     });
     selectedUnits = [];
     updateUI();
@@ -951,8 +1015,8 @@ function animate() {
     labelRenderer.render(scene, camera);
 }
 
-function updateUnits() {
-    const deltaTime = 0.016; // Assume 60 FPS
+function updateUnits(customDeltaTime) {
+    const deltaTime = customDeltaTime !== undefined ? customDeltaTime : 0.016; // Assume 60 FPS
 
     units.forEach(unit => {
         if (unit instanceof Villager) {
@@ -962,3 +1026,23 @@ function updateUnits() {
         }
     });
 }
+
+// Expose API for hermetic testing
+window.gameAPI = {
+    THREE: THREE,
+    getUnits: () => units,
+    getTown: () => town,
+    getTownCenter: () => townCenter,
+    updateUnits: updateUnits,
+    getGrid: () => grid,
+    getCamera: () => camera,
+    triggerRightClick: (clientX, clientY) => {
+        onRightClick({ preventDefault: () => {}, clientX, clientY });
+    },
+    triggerMouseDown: (clientX, clientY, button = 0) => {
+        onMouseDown({ target: document.body, button, clientX, clientY });
+    },
+    triggerMouseUp: (clientX, clientY, button = 0) => {
+        onMouseUp({ button, clientX, clientY });
+    }
+};
